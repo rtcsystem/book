@@ -59,6 +59,7 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0; cursor: pointer; border: 2px solid rgba(255,255,255,.4); transition: border-color .15s; }
 .avatar:hover { border-color: rgba(255,255,255,.9); }
 .avatar-lg { width: 72px; height: 72px; font-size: 26px; border: 3px solid var(--maroon); cursor: default; }
+.avatar-xs { width: 30px; height: 30px; font-size: 11px; border: none; flex-shrink: 0; }
 .avatar-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.9); font-size: 13px; border-radius: 6px; padding: 4px 8px; transition: background .15s; }
 .avatar-btn:hover { background: rgba(255,255,255,.15); }
 .avatar-btn-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -353,8 +354,7 @@ tr.row-pending:hover td { background: #fef9c3; }
           <div class="form-group">
             <label>Password <span>*</span></label>
             <div class="pw-wrap"><input class="form-control" type="password" id="ulPassword" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doUserLogin()"><button type="button" class="pw-eye" onclick="togglePw('ulPassword',this)"><i class="fa-solid fa-eye"></i></button></div>
-            <button class="forgot-link" onclick="toggleForgot()">Forgot password?</button>
-            <div class="forgot-msg" id="forgotMsg"><i class="fa-solid fa-circle-info"></i><span>Please ask <strong>Joymee</strong> to reset your password.<br>Contact: <strong>joymee@rameshtrading.com.ph</strong></span></div>
+            <button class="forgot-link" onclick="openForgotModal()">Forgot password?</button>
           </div>
           <button class="btn btn-primary btn-full" onclick="doUserLogin()" id="btnUserLogin"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
         </div>
@@ -506,7 +506,10 @@ tr.row-pending:hover td { background: #fef9c3; }
       <div class="card">
         <div class="card-header">
           <h2><i class="fa-solid fa-table-list"></i> All Bookings</h2>
-          <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-success btn-sm" onclick="openAdminCreateBooking()"><i class="fa-solid fa-plus"></i> Create Booking</button>
+            <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          </div>
         </div>
         <div class="card-body">
           <div class="filter-bar">
@@ -921,7 +924,13 @@ function switchLoginTab(tab) {
   document.getElementById('adminLoginForm').classList.toggle('hidden', u);
   showAlert('userLoginAlert','',''); showAlert('adminLoginAlert','','');
 }
-function toggleForgot() { document.getElementById('forgotMsg').classList.toggle('show'); }
+function openForgotModal() { resetForgotFlow(); document.getElementById('modalForgot').classList.remove('hidden'); }
+function resetForgotFlow() {
+  document.getElementById('fpStep1').classList.remove('hidden');
+  document.getElementById('fpStep2').classList.add('hidden');
+  showAlert('fpAlert1','',''); showAlert('fpAlert2','','');
+  ['fpEmail','fpOtp','fpNewPw','fpConfirmPw'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+}
 
 function doUserLogin() {
   const email = document.getElementById('ulEmail').value.trim();
@@ -1337,7 +1346,7 @@ function renderBookingsTable(bookings) {
       <td class="fw-bold" style="white-space:nowrap">${fmtDate(b.bookingDate)}</td>
       <td class="text-sm" style="white-space:nowrap">${b.timeRange}</td>
       <td class="fw-bold">${b.title || '—'}</td>
-      <td class="fw-bold"><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button><div class="text-sm text-muted">${b.mobile}</div></td>
+      <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button><div class="text-sm text-muted">${b.mobile}</div></div></div></td>
       <td class="text-sm text-muted">${b.email}</td>
       <td class="text-sm" style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.purpose}</td>
       <td class="text-sm" style="max-width:130px">${b.guests ? escHtml(b.guests).replace(/\n/g,'<br>') : '—'}</td>
@@ -1381,7 +1390,6 @@ function viewUserProfile(email) {
         <div>
           <div style="font-size:18px;font-weight:700;color:#1f2937">${escHtml(u.fullName)}</div>
           <div style="font-size:13px;color:#6b7280">${escHtml(u.email)}</div>
-          <div style="margin-top:4px">${u.status === 'Active' ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
@@ -1510,8 +1518,13 @@ function selectAdminDate(ds, bookings) {
         <div class="slot-time">${b.timeRange}</div>${statusBadge(b.status)}
       </div>
       ${b.title ? `<div style="font-weight:700;font-size:13px">${b.title}</div>` : ''}
-      <div style="font-weight:600;font-size:13px;color:#374151">${b.fullName}</div>
-      <div class="text-sm text-muted">${b.email} · ${b.mobile}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
+        ${avatarHtml(b.fullName,'avatar-xs',b.avatar)}
+        <div>
+          <div style="font-weight:600;font-size:13px;color:#374151">${b.fullName}</div>
+          <div class="text-sm text-muted">${b.email} · ${b.mobile}</div>
+        </div>
+      </div>
       <div class="text-sm"><strong>Purpose:</strong> ${b.purpose}</div>
       ${b.guests  ? `<div class="text-sm" style="margin-top:4px"><strong><i class="fa-solid fa-users" style="color:#6b7280;margin-right:4px"></i>Guests:</strong><br>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
       ${b.remarks ? `<div class="text-sm text-muted" style="margin-top:4px;font-style:italic;border-left:3px solid #e5e7eb;padding-left:6px">${escHtml(b.remarks)}</div>` : ''}
@@ -1723,6 +1736,177 @@ document.addEventListener('DOMContentLoaded', function() {
     el.addEventListener('input', function() { autoResize(this); });
   });
 });
+
+// ── FORGOT PASSWORD — OTP FLOW ────────────────────────────────
+function doSendOtp() {
+  const email = document.getElementById('fpEmail').value.trim();
+  if (!email) { showAlert('fpAlert1','Please enter your email.','error'); return; }
+  setBtnLoading('btnSendOtp', true);
+  api('sendPasswordReset', { email: email }, function(r) {
+    setBtnLoading('btnSendOtp', false);
+    if (r && r.success) {
+      document.getElementById('fpStep1').classList.add('hidden');
+      document.getElementById('fpStep2').classList.remove('hidden');
+    } else {
+      showAlert('fpAlert1', (r && r.message) || 'Error sending OTP.', 'error');
+    }
+  });
+}
+
+function doResetPassword() {
+  const email     = document.getElementById('fpEmail').value.trim();
+  const otp       = document.getElementById('fpOtp').value.trim();
+  const newPw     = document.getElementById('fpNewPw').value;
+  const confirmPw = document.getElementById('fpConfirmPw').value;
+  if (!otp)              { showAlert('fpAlert2','Enter the OTP from your email.','error'); return; }
+  if (!newPw)            { showAlert('fpAlert2','Enter a new password.','error'); return; }
+  if (newPw.length < 6)  { showAlert('fpAlert2','Password must be at least 6 characters.','error'); return; }
+  if (newPw !== confirmPw){ showAlert('fpAlert2','Passwords do not match.','error'); return; }
+  setBtnLoading('btnResetPw', true);
+  api('resetPassword', { email: email, otp: otp, newPassword: newPw }, function(r) {
+    setBtnLoading('btnResetPw', false);
+    if (r && r.success) {
+      showAlert('fpAlert2', r.message, 'success');
+      setTimeout(function() { closeModal('modalForgot'); resetForgotFlow(); showView('login'); }, 2000);
+    } else {
+      showAlert('fpAlert2', (r && r.message) || 'Error resetting password.', 'error');
+    }
+  });
+}
+
+// ── ADMIN CREATE BOOKING ──────────────────────────────────────
+var _acUsers = [];
+
+function openAdminCreateBooking() {
+  document.getElementById('acEmail').value    = '';
+  document.getElementById('acDate').value     = '';
+  document.getElementById('acTitle').value    = '';
+  document.getElementById('acPurpose').value  = '';
+  document.getElementById('acGuests').value   = '';
+  document.getElementById('acRemarks').value  = '';
+  document.getElementById('acUserInfo').style.display = 'none';
+  document.getElementById('acSlotInfo').textContent   = '';
+  showAlert('acAlert','','');
+  document.getElementById('acStart').innerHTML = '<option value="">Select date first</option>';
+  document.getElementById('acEnd').innerHTML   = '<option value="">Select date first</option>';
+  // Pre-populate datalist with registered users
+  if (_acUsers.length === 0) {
+    api('getRegisteredUsers', {}, function(r) {
+      if (r && r.success) {
+        _acUsers = r.users;
+        const dl = document.getElementById('acUserList');
+        dl.innerHTML = r.users.map(function(u) { return '<option value="'+u.email+'">'+u.fullName+'</option>'; }).join('');
+      }
+    });
+  }
+  // Set min date to today
+  document.getElementById('acDate').min = new Date().toISOString().slice(0,10);
+  document.getElementById('modalAdminCreate').classList.remove('hidden');
+}
+
+function lookupAcUser() {
+  const email = document.getElementById('acEmail').value.trim();
+  if (!email) { showAlert('acAlert','Enter a user email first.','error'); return; }
+  const found = _acUsers.find(function(u) { return u.email.toLowerCase() === email.toLowerCase(); });
+  const info  = document.getElementById('acUserInfo');
+  if (found) {
+    info.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>'
+      + '<strong>'+escHtml(found.fullName)+'</strong> · '+escHtml(found.mobile);
+    info.style.display = '';
+    showAlert('acAlert','','');
+  } else {
+    info.style.display = 'none';
+    showAlert('acAlert','No registered user found with that email.','error');
+  }
+}
+
+function loadAcSlots() {
+  const dateVal = document.getElementById('acDate').value;
+  if (!dateVal) return;
+  document.getElementById('acSlotInfo').textContent = 'Loading slots…';
+  api('getPublicSlots', { date: dateVal }, function(r) {
+    const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
+    const startSel = document.getElementById('acStart');
+    const endSel   = document.getElementById('acEnd');
+    const OPEN=8*60, CLOSE=18*60, STEP=30;
+    startSel.innerHTML = '<option value="">-- Start Time --</option>';
+    for (var m = OPEN; m < CLOSE; m += STEP) {
+      const opt = document.createElement('option');
+      opt.value = minToStr(m); opt.textContent = minToStr(m);
+      const blocked = bookedBlocks.some(function(b) { return m >= b.startMin && m < b.endMin; });
+      if (blocked) { opt.disabled = true; opt.textContent += ' (booked)'; }
+      startSel.appendChild(opt);
+    }
+    endSel.innerHTML = '<option value="">-- End Time --</option>';
+    const booked = bookedBlocks.length;
+    document.getElementById('acSlotInfo').textContent = booked ? booked+' block(s) already booked on this day.' : 'No bookings on this day yet.';
+  });
+}
+
+function updateAcEndTimes() {
+  const startVal = document.getElementById('acStart').value;
+  const dateVal  = document.getElementById('acDate').value;
+  const endSel   = document.getElementById('acEnd');
+  endSel.innerHTML = '<option value="">-- End Time --</option>';
+  if (!startVal || !dateVal) return;
+  api('getPublicSlots', { date: dateVal }, function(r) {
+    const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
+    const startMin = timeStrToMinJs(startVal);
+    const CLOSE=18*60, STEP=30;
+    for (var m = startMin+STEP; m <= CLOSE; m += STEP) {
+      // Stop if this range conflicts
+      const conflict = bookedBlocks.some(function(b) { return startMin < b.endMin && m > b.startMin; });
+      if (conflict && m > startMin+STEP) break;
+      const opt = document.createElement('option');
+      opt.value = minToStr(m); opt.textContent = minToStr(m);
+      endSel.appendChild(opt);
+      if (conflict) break;
+    }
+  });
+}
+
+function minToStr(m) {
+  var h=Math.floor(m/60), mn=m%60, p=h>=12?'PM':'AM', h12=h%12||12;
+  return h12+':'+(mn<10?'0':'')+mn+' '+p;
+}
+function timeStrToMinJs(s) {
+  var parts=s.match(/(\d+):(\d+)\s*(AM|PM)/i); if(!parts)return 0;
+  var h=parseInt(parts[1]),mn=parseInt(parts[2]),p=parts[3].toUpperCase();
+  if(p==='PM'&&h!==12)h+=12; if(p==='AM'&&h===12)h=0;
+  return h*60+mn;
+}
+
+function doAdminCreateBooking() {
+  const email   = document.getElementById('acEmail').value.trim();
+  const date    = document.getElementById('acDate').value;
+  const start   = document.getElementById('acStart').value;
+  const end     = document.getElementById('acEnd').value;
+  const title   = document.getElementById('acTitle').value.trim();
+  const purpose = document.getElementById('acPurpose').value.trim();
+  const guests  = document.getElementById('acGuests').value.trim();
+  const remarks = document.getElementById('acRemarks').value.trim();
+  if (!email)   { showAlert('acAlert','User email is required.','error'); return; }
+  if (!date)    { showAlert('acAlert','Select a date.','error'); return; }
+  if (!start)   { showAlert('acAlert','Select a start time.','error'); return; }
+  if (!end)     { showAlert('acAlert','Select an end time.','error'); return; }
+  if (!purpose) { showAlert('acAlert','Purpose is required.','error'); return; }
+  setBtnLoading('btnAcSubmit', true);
+  api('adminCreateBooking', {
+    adminUsername: App.admin.username,
+    userEmail: email, bookingDate: date,
+    startTime: start, endTime: end,
+    title: title, purpose: purpose, guests: guests, remarks: remarks
+  }, function(r) {
+    setBtnLoading('btnAcSubmit', false);
+    if (r && r.success) {
+      toast('Booking created! Confirmation email sent to '+email, 'success');
+      closeModal('modalAdminCreate');
+      loadAdminBookings(); loadAdminStats(); loadAdminToday();
+    } else {
+      showAlert('acAlert', (r && r.message) || 'Error creating booking.', 'error');
+    }
+  });
+}
 </script>
 
 <!-- ── MODAL: VIEW USER (Admin) ──────────────────────────── -->
@@ -1794,10 +1978,118 @@ document.addEventListener('DOMContentLoaded', function() {
           <label>Confirm New Password</label>
           <div class="pw-wrap"><input class="form-control" type="password" id="pfConfirmPw" placeholder="Re-enter new password"><button type="button" class="pw-eye" onclick="togglePw('pfConfirmPw',this)"><i class="fa-solid fa-eye"></i></button></div>
         </div>
-        <button class="btn btn-ghost btn-full" onclick="doChangePassword()" id="btnChangePw">
+                <button class="btn btn-danger btn-sm btn-full" onclick="doChangePassword()" id="btnChangePw" style="margin-top:4px">
           <i class="fa-solid fa-key"></i> Change Password
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: FORGOT PASSWORD (OTP Flow) ─────────────────── -->
+<div class="modal-overlay hidden" id="modalForgot">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-key"></i> Reset Password</h3>
+      <button class="modal-close" onclick="closeModal('modalForgot');resetForgotFlow()">&times;</button>
+    </div>
+    <div style="padding:28px">
+      <!-- Step 1: Enter email -->
+      <div id="fpStep1">
+        <p style="font-size:14px;color:#6b7280;margin-bottom:16px">Enter your company email and we'll send you a 6-digit OTP.</p>
+        <div id="fpAlert1"></div>
+        <div class="form-group">
+          <label>Company Email <span>*</span></label>
+          <input class="form-control" type="email" id="fpEmail" placeholder="yourname@rameshtrading.com.ph" onkeydown="if(event.key==='Enter')doSendOtp()">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doSendOtp()" id="btnSendOtp">
+          <i class="fa-solid fa-paper-plane"></i> Send OTP
+        </button>
+      </div>
+      <!-- Step 2: Enter OTP + new password -->
+      <div id="fpStep2" class="hidden">
+        <div style="background:#fffbe6;border:1px solid #fcd34d;border-radius:8px;padding:12px;font-size:13px;color:#92400e;margin-bottom:16px">
+          <i class="fa-solid fa-circle-info" style="margin-right:6px"></i>OTP sent! Check your email — valid for <strong>15 minutes</strong>.
+        </div>
+        <div id="fpAlert2"></div>
+        <div class="form-group">
+          <label>6-Digit OTP <span>*</span></label>
+          <input class="form-control" type="text" id="fpOtp" placeholder="Enter OTP from email" maxlength="6" style="letter-spacing:6px;font-size:20px;font-weight:700;text-align:center">
+        </div>
+        <div class="form-group">
+          <label>New Password <span>*</span></label>
+          <div class="pw-wrap"><input class="form-control" type="password" id="fpNewPw" placeholder="Min. 6 characters"><button type="button" class="pw-eye" onclick="togglePw('fpNewPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password <span>*</span></label>
+          <div class="pw-wrap"><input class="form-control" type="password" id="fpConfirmPw" placeholder="Re-enter password"><button type="button" class="pw-eye" onclick="togglePw('fpConfirmPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="resetForgotFlow()" style="flex:0 0 auto">← Back</button>
+          <button class="btn btn-primary btn-full" onclick="doResetPassword()" id="btnResetPw">
+            <i class="fa-solid fa-lock"></i> Reset Password
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: ADMIN CREATE BOOKING ───────────────────────── -->
+<div class="modal-overlay hidden" id="modalAdminCreate">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-calendar-plus"></i> Create Booking for User</h3>
+      <button class="modal-close" onclick="closeModal('modalAdminCreate')">&times;</button>
+    </div>
+    <div style="padding:28px">
+      <div id="acAlert"></div>
+      <div class="form-group">
+        <label>User Email <span>*</span></label>
+        <div style="display:flex;gap:8px">
+          <input class="form-control" type="email" id="acEmail" placeholder="employee@rameshtrading.com.ph" list="acUserList" style="flex:1">
+          <datalist id="acUserList"></datalist>
+          <button class="btn btn-ghost btn-sm" onclick="lookupAcUser()" style="white-space:nowrap"><i class="fa-solid fa-magnifying-glass"></i> Lookup</button>
+        </div>
+        <div id="acUserInfo" style="margin-top:6px;font-size:13px;color:#374151;display:none"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date <span>*</span></label>
+          <input class="form-control" type="date" id="acDate" onchange="loadAcSlots()">
+        </div>
+        <div class="form-group">
+          <label>Start Time <span>*</span></label>
+          <select class="form-control" id="acStart" onchange="updateAcEndTimes()"></select>
+        </div>
+        <div class="form-group">
+          <label>End Time <span>*</span></label>
+          <select class="form-control" id="acEnd"></select>
+        </div>
+      </div>
+      <div id="acSlotInfo" style="font-size:12px;color:#6b7280;margin:-8px 0 10px"></div>
+      <div class="form-group">
+        <label>Title</label>
+        <input class="form-control" type="text" id="acTitle" placeholder="e.g. Showroom Visit - Client Name">
+      </div>
+      <div class="form-group">
+        <label>Purpose <span>*</span></label>
+        <input class="form-control" type="text" id="acPurpose" placeholder="Purpose of the visit">
+      </div>
+      <div class="form-group">
+        <label>Guests</label>
+        <textarea class="form-control auto-resize" id="acGuests" rows="2" style="min-height:60px;resize:none;overflow:hidden" placeholder="Guest names, one per line"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Remarks</label>
+        <input class="form-control" type="text" id="acRemarks" placeholder="Optional notes">
+      </div>
+      <div style="background:#fffbe6;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:16px">
+        <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>Booking will be <strong>auto-confirmed</strong> and a confirmation email sent to the user.
+      </div>
+      <button class="btn btn-success btn-full" onclick="doAdminCreateBooking()" id="btnAcSubmit">
+        <i class="fa-solid fa-calendar-plus"></i> Create &amp; Confirm Booking
+      </button>
     </div>
   </div>
 </div>
