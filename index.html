@@ -1,1 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTC Showroom Booking System</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ── Reset & Variables ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --maroon:      #800000;
+  --maroon-dark: #5c0000;
+  --maroon-lite: #fff0f0;
+  --white:       #ffffff;
+  --gray-50:     #f9fafb;
+  --gray-100:    #f3f4f6;
+  --gray-200:    #e5e7eb;
+  --gray-400:    #9ca3af;
+  --gray-600:    #6b7280;
+  --gray-800:    #1f2937;
+  --green:       #16a34a;
+  --green-lite:  #dcfce7;
+  --red:         #dc2626;
+  --red-lite:    #fee2e2;
+  --yellow:      #d97706;
+  --yellow-lite: #fef3c7;
+  --blue-lite:   #dbeafe;
+  --orange-lite: #ffedd5;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.10);
+  --shadow:      0 4px 12px rgba(0,0,0,.12);
+  --shadow-lg:   0 8px 30px rgba(0,0,0,.16);
+  --radius:      10px;
+  --radius-lg:   16px;
+  --font:        'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--gray-100); color: var(--gray-800); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--gray-100); }
+::-webkit-scrollbar-thumb { background: var(--maroon); border-radius: 3px; }
 
+/* ── Header ────────────────────────────────────────────────── */
+.header { background: var(--maroon); color: var(--white); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 0 20px; height: 64px; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--white); flex-shrink: 0; cursor: pointer; }
+.logo-icon { width: 40px; height: 40px; background: rgba(255,255,255,.18); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; }
+.logo-text b { display: block; font-size: 15px; font-weight: 700; line-height: 1.2; }
+.logo-text span { font-size: 11px; opacity: .8; }
+.header-nav { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nav-btn { background: transparent; border: none; color: rgba(255,255,255,.85); padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: var(--font); transition: background .15s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.nav-btn:hover { background: rgba(255,255,255,.15); color: var(--white); }
+.nav-btn.active { background: rgba(255,255,255,.22); color: var(--white); font-weight: 600; }
+.nav-btn.accent { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35); color: var(--white); font-weight: 600; }
+.nav-btn.accent:hover { background: rgba(255,255,255,.3); }
+.user-badge { background: rgba(255,255,255,.15); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: rgba(255,255,255,.9); display: flex; align-items: center; gap: 6px; }
+.pending-badge { background: #f59e0b; color: #fff; border-radius: 20px; padding: 1px 7px; font-size: 11px; font-weight: 700; margin-left: 4px; }
+/* ── Avatar ─────────────────────────────────────────────────── */
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0; cursor: pointer; border: 2px solid rgba(255,255,255,.4); transition: border-color .15s; }
+.avatar:hover { border-color: rgba(255,255,255,.9); }
+.avatar-lg { width: 72px; height: 72px; font-size: 26px; border: 3px solid var(--maroon); cursor: default; }
+.avatar-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.9); font-size: 13px; border-radius: 6px; padding: 4px 8px; transition: background .15s; }
+.avatar-btn:hover { background: rgba(255,255,255,.15); }
+.avatar-btn-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ── Inline link button ─────────────────────────────────────── */
+.btn-link-plain { background: none; border: none; padding: 0; cursor: pointer; color: #1f2937; font-weight: 700; font-size: inherit; text-align: left; text-decoration: underline dotted; text-underline-offset: 2px; }
+.btn-link-plain:hover { color: var(--maroon); }
+/* ── Password Eye ───────────────────────────────────────────── */
+.pw-wrap { position: relative; }
+.pw-wrap .form-control { padding-right: 40px; }
+.pw-eye { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--gray-400); font-size: 15px; padding: 4px; }
+.pw-eye:hover { color: var(--gray-600); }
+
+/* ── Layout ────────────────────────────────────────────────── */
+.page { max-width: 1500px; margin: 0 auto; padding: 24px 20px; }
+.hidden { display: none !important; }
+
+/* ── Cards ─────────────────────────────────────────────────── */
+.card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-header h2 { font-size: 16px; font-weight: 700; color: var(--maroon); display: flex; align-items: center; gap: 8px; }
+.card-body { padding: 20px; }
+
+/* ── Stats ─────────────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 16px; border-left: 4px solid var(--maroon); transition: transform .15s, box-shadow .15s; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.stat-icon { width: 48px; height: 48px; background: var(--maroon-lite); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--maroon); font-size: 20px; flex-shrink: 0; }
+.stat-info p { font-size: 12px; color: var(--gray-600); margin-bottom: 2px; }
+.stat-info h3 { font-size: 26px; font-weight: 700; color: var(--maroon); line-height: 1; }
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer; border: none; transition: all .15s; white-space: nowrap; text-decoration: none; }
+.btn-primary  { background: var(--maroon); color: var(--white); }
+.btn-primary:hover { background: var(--maroon-dark); }
+.btn-outline  { background: transparent; color: var(--maroon); border: 1.5px solid var(--maroon); }
+.btn-outline:hover { background: var(--maroon-lite); }
+.btn-danger   { background: var(--red); color: var(--white); }
+.btn-danger:hover { background: #b91c1c; }
+.btn-success  { background: var(--green); color: var(--white); }
+.btn-success:hover { background: #15803d; }
+.btn-warning  { background: #f59e0b; color: var(--white); }
+.btn-warning:hover { background: #d97706; }
+.btn-ghost    { background: transparent; color: var(--gray-600); border: 1px solid var(--gray-200); }
+.btn-ghost:hover { background: var(--gray-100); }
+.btn-sm  { padding: 5px 12px; font-size: 12px; border-radius: 5px; }
+.btn-full { width: 100%; justify-content: center; padding: 12px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Forms ─────────────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--gray-800); }
+.form-group label span { color: var(--red); }
+.form-control { width: 100%; padding: 10px 14px; border: 1.5px solid var(--gray-200); border-radius: 7px; font-size: 13px; font-family: var(--font); transition: border-color .15s, box-shadow .15s; background: var(--white); color: var(--gray-800); }
+.form-control:focus { outline: none; border-color: var(--maroon); box-shadow: 0 0 0 3px rgba(128,0,0,.10); }
+.form-control:disabled { background: var(--gray-100); cursor: not-allowed; }
+textarea.form-control { resize: vertical; min-height: 80px; line-height: 1.6; }
+.form-hint { font-size: 11px; color: var(--gray-600); margin-top: 4px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+
+/* ── Auth ───────────────────────────────────────────────────── */
+.auth-wrap { min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
+.auth-card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 440px; overflow: hidden; }
+.auth-header { background: var(--maroon); padding: 28px 32px; text-align: center; color: var(--white); }
+.auth-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.auth-header p { font-size: 13px; opacity: .8; }
+.auth-body { padding: 32px; }
+.auth-tabs { display: flex; margin-bottom: 24px; border-bottom: 2px solid var(--gray-200); }
+.auth-tab { flex: 1; padding: 10px; background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gray-600); font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s, border-color .15s; }
+.auth-tab.active { color: var(--maroon); border-color: var(--maroon); }
+.domain-note { background: var(--maroon-lite); border: 1px solid #fca5a5; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: var(--maroon); margin-bottom: 16px; display: flex; gap: 8px; }
+.forgot-link { background: none; border: none; cursor: pointer; color: var(--maroon); font-size: 12px; text-decoration: underline; font-family: var(--font); margin-top: 8px; display: block; text-align: right; }
+.forgot-msg { background: var(--yellow-lite); border: 1px solid #fcd34d; border-radius: 7px; padding: 12px 14px; font-size: 12px; color: #92400e; margin-top: 12px; display: none; gap: 8px; }
+.forgot-msg.show { display: flex; }
+.auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--gray-600); }
+.auth-switch a { color: var(--maroon); cursor: pointer; font-weight: 600; }
+.auth-switch a:hover { text-decoration: underline; }
+
+/* ── Tabs ───────────────────────────────────────────────────── */
+.tab-bar { display: flex; gap: 4px; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px; overflow-x: auto; }
+.tab-btn { padding: 10px 18px; background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gray-600); font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: color .15s, border-color .15s; display: flex; align-items: center; gap: 7px; }
+.tab-btn:hover { color: var(--maroon); }
+.tab-btn.active { color: var(--maroon); border-color: var(--maroon); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Calendar ───────────────────────────────────────────────── */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cal-nav h3 { font-size: 16px; font-weight: 700; color: var(--gray-800); }
+.cal-nav-btn { width: 34px; height: 34px; background: var(--maroon-lite); border: none; border-radius: 7px; cursor: pointer; color: var(--maroon); font-size: 14px; transition: background .15s; display: flex; align-items: center; justify-content: center; }
+.cal-nav-btn:hover { background: #fca5a5; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day-label { text-align: center; font-size: 11px; font-weight: 700; color: var(--gray-600); padding: 6px 0; text-transform: uppercase; letter-spacing: .5px; }
+.cal-day { min-height: 64px; border-radius: 8px; padding: 6px; cursor: pointer; border: 2px solid transparent; transition: all .15s; background: var(--gray-50); display: flex; flex-direction: column; }
+.cal-day:hover:not(.cal-empty):not(.cal-past):not(.cal-blocked) { border-color: var(--maroon); background: var(--maroon-lite); }
+.cal-day.cal-empty   { background: transparent; cursor: default; border: none; }
+.cal-day.cal-today   { border-color: var(--maroon); }
+.cal-day.cal-selected { background: var(--maroon); color: var(--white); border-color: var(--maroon); }
+.cal-day.cal-blocked { background: var(--gray-100); cursor: not-allowed; opacity: .6; }
+.cal-day.cal-past    { opacity: .4; cursor: default; }
+.cal-day-num { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.cal-day.cal-today .cal-day-num { background: var(--maroon); color: var(--white); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+.cal-day.cal-selected .cal-day-num { background: rgba(255,255,255,.25); }
+.cal-badges { display: flex; flex-direction: column; gap: 2px; margin-top: auto; }
+.cal-badge { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; text-align: center; line-height: 1.3; }
+.cal-badge-booked { background: #fee2e2; color: #991b1b; }
+.cal-badge-block  { background: var(--gray-200); color: var(--gray-600); }
+@media (max-width: 600px) { .cal-day { min-height: 44px; padding: 4px; } .cal-badges { display: none; } }
+
+/* ── Slot Items ─────────────────────────────────────────────── */
+.slot-panel-header { font-size: 14px; font-weight: 700; color: var(--gray-800); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; gap: 8px; }
+.slot-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; border: 1.5px solid var(--gray-200); background: var(--white); transition: border-color .15s; }
+.slot-item.slot-booked { background: var(--red-lite);   border-color: #fca5a5; }
+.slot-item.slot-avail  { background: var(--green-lite); border-color: #86efac; }
+.slot-time  { font-size: 13px; font-weight: 700; color: var(--gray-800); }
+.slot-label { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .5px; }
+.slot-label.booked { background: #fee2e2; color: #991b1b; }
+.slot-label.avail  { background: #dcfce7; color: #166534; }
+
+/* ── Booking Cards ──────────────────────────────────────────── */
+.booking-card { border: 1.5px solid var(--gray-200); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; background: var(--white); transition: box-shadow .15s; }
+.booking-card:hover { box-shadow: var(--shadow); }
+.booking-card.pending-card { border-color: #fcd34d; background: #fffef0; }
+.booking-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.booking-id      { font-size: 11px; color: var(--gray-600); }
+.booking-date    { font-size: 15px; font-weight: 700; color: var(--maroon); }
+.booking-time    { font-size: 13px; color: var(--gray-600); margin-bottom: 4px; }
+.booking-title   { font-size: 14px; font-weight: 700; color: var(--gray-800); margin-bottom: 2px; }
+.booking-purpose { font-size: 13px; color: var(--gray-600); margin-bottom: 4px; }
+.booking-remarks { font-size: 12px; color: var(--gray-600); background: var(--gray-50); border-radius: 5px; padding: 6px 10px; margin-bottom: 10px; white-space: pre-wrap; border-left: 3px solid var(--gray-200); }
+.booking-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Badges ─────────────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.badge-pending   { background: var(--yellow-lite); color: #92400e; border: 1px solid #fcd34d; }
+.badge-confirmed { background: var(--blue-lite);   color: #1e40af; }
+.badge-cancelled { background: var(--red-lite);    color: #991b1b; }
+.badge-completed { background: var(--green-lite);  color: #166534; }
+.badge-noshow    { background: var(--gray-200);    color: var(--gray-600); }
+
+/* ── Pending Banner ─────────────────────────────────────────── */
+.pending-banner { background: #fffbe6; border: 1.5px solid #fcd34d; border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pending-banner-text { display: flex; align-items: center; gap: 10px; }
+.pending-banner-text i { color: #d97706; font-size: 20px; }
+.pending-banner-title { font-weight: 700; color: #92400e; font-size: 14px; }
+.pending-banner-sub   { font-size: 12px; color: #b45309; }
+
+/* ── Table ──────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--maroon); color: var(--white); padding: 11px 14px; text-align: left; font-size: 12px; font-weight: 700; white-space: nowrap; }
+td { padding: 11px 14px; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--gray-50); }
+tr.row-pending td { background: #fffef0; }
+tr.row-pending:hover td { background: #fef9c3; }
+.td-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ── Filter Bar ─────────────────────────────────────────────── */
+.filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+.filter-group { display: flex; flex-direction: column; gap: 4px; }
+.filter-group label { font-size: 11px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; }
+.filter-bar .form-control { padding: 8px 12px; font-size: 12px; }
+
+/* ── Alerts ─────────────────────────────────────────────────── */
+.alert { padding: 12px 16px; border-radius: 7px; font-size: 13px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; animation: slideIn .2s ease; }
+@keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.alert-success { background: var(--green-lite);  color: #166534; border: 1px solid #86efac; }
+.alert-error   { background: var(--red-lite);    color: #991b1b; border: 1px solid #fca5a5; }
+.alert-info    { background: var(--blue-lite);   color: #1e40af; border: 1px solid #93c5fd; }
+.alert-warn    { background: var(--yellow-lite); color: #92400e; border: 1px solid #fcd34d; }
+
+/* ── Toast ──────────────────────────────────────────────────── */
+#toast-container { position: fixed; top: 74px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--white); border-radius: 8px; box-shadow: var(--shadow-lg); padding: 14px 18px; font-size: 13px; min-width: 260px; max-width: 340px; border-left: 4px solid var(--maroon); display: flex; align-items: center; gap: 10px; animation: toastIn .25s ease; }
+@keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+.toast-success { border-color: var(--green); }
+.toast-error   { border-color: var(--red); }
+.toast-info    { border-color: #2563eb; }
+.toast-warn    { border-color: #f59e0b; }
+
+/* ── Modal ──────────────────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-box { background: var(--white); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: modalIn .2s ease; }
+@keyframes modalIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:none; } }
+.modal-header { background: var(--maroon); color: var(--white); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+.modal-close { background: none; border: none; color: rgba(255,255,255,.8); cursor: pointer; font-size: 18px; padding: 4px; }
+.modal-close:hover { color: var(--white); }
+.modal-body   { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ── Loading ─────────────────────────────────────────────────── */
+.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,.75); z-index: 500; display: flex; align-items: center; justify-content: center; }
+.spinner { width: 44px; height: 44px; border: 4px solid var(--gray-200); border-top-color: var(--maroon); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+
+/* ── Misc ───────────────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+.empty-state { text-align: center; padding: 48px 16px; color: var(--gray-400); }
+.empty-state i { font-size: 48px; margin-bottom: 12px; display: block; }
+.empty-state p { font-size: 14px; }
+.page-title    { font-size: 20px; font-weight: 800; color: var(--maroon); margin-bottom: 4px; }
+.page-subtitle { font-size: 13px; color: var(--gray-600); margin-bottom: 24px; }
+.text-sm   { font-size: 12px; }
+.text-muted { color: var(--gray-600); }
+.fw-bold   { font-weight: 700; }
+.divider   { border: none; border-top: 1px solid var(--gray-200); margin: 20px 0; }
+
+@media (max-width: 480px) {
+  .page { padding: 16px 12px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card { padding: 14px; gap: 10px; }
+  .stat-info h3 { font-size: 22px; }
+  .header-inner { height: 56px; }
+  .logo-text span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
+<div id="toast-container"></div>
+
+<!-- ── HEADER ──────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo" onclick="showView('public')">
+      <div class="logo-icon">RTC</div>
+      <div class="logo-text"><b>RTC Showroom</b><span>Booking System</span></div>
+    </div>
+    <nav class="header-nav" id="headerNav"></nav>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════
+     VIEW: PUBLIC DASHBOARD
+════════════════════════════════════════════════════════════ -->
+<div id="view-public">
+  <div class="page">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-info"><p>Total Bookings</p><h3 id="statTotal">—</h3></div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div><div class="stat-info"><p>Today's Bookings</p><h3 id="statToday">—</h3></div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-week"></i></div><div class="stat-info"><p>This Month</p><h3 id="statMonth">—</h3></div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-clock"></i></div><div class="stat-info"><p>Available Today</p><h3 id="statAvail">—</h3></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Availability Calendar</h2></div>
+        <div class="card-body">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <h3 id="calTitle">—</h3>
+            <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div class="cal-grid" id="calDayLabels"></div>
+          <div class="cal-grid" id="calGrid" style="margin-top:4px"></div>
+          <div style="margin-top:12px;display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;background:#fee2e2;border-radius:2px;margin-right:4px"></span>Booked</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#e5e7eb;border-radius:2px;margin-right:4px"></span>Blocked</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2><i class="fa-solid fa-clock"></i> Time Slots</h2></div>
+        <div class="card-body" id="slotPanel">
+          <div class="empty-state"><i class="fa-regular fa-calendar fa-2x"></i><p>Click a date to see available time slots.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VIEW: LOGIN
+════════════════════════════════════════════════════════════ -->
+<div id="view-login" class="hidden">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-header"><h1><i class="fa-solid fa-right-to-bracket"></i> Sign In</h1><p>RTC Showroom Booking System</p></div>
+      <div class="auth-body">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabUserLogin" onclick="switchLoginTab('user')"><i class="fa-solid fa-user"></i> Employee</button>
+          <button class="auth-tab" id="tabAdminLogin" onclick="switchLoginTab('admin')"><i class="fa-solid fa-shield-halved"></i> Admin</button>
+        </div>
+        <div id="userLoginForm">
+          <div class="domain-note"><i class="fa-solid fa-circle-info"></i><span>Use your <strong>@rameshtrading.com.ph</strong> company email.</span></div>
+          <div id="userLoginAlert"></div>
+          <div class="form-group"><label>Company Email <span>*</span></label><input class="form-control" type="email" id="ulEmail" placeholder="yourname@rameshtrading.com.ph" onkeydown="if(event.key==='Enter')doUserLogin()"></div>
+          <div class="form-group">
+            <label>Password <span>*</span></label>
+            <div class="pw-wrap"><input class="form-control" type="password" id="ulPassword" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doUserLogin()"><button type="button" class="pw-eye" onclick="togglePw('ulPassword',this)"><i class="fa-solid fa-eye"></i></button></div>
+            <button class="forgot-link" onclick="toggleForgot()">Forgot password?</button>
+            <div class="forgot-msg" id="forgotMsg"><i class="fa-solid fa-circle-info"></i><span>Please ask <strong>Joymee</strong> to reset your password.<br>Contact: <strong>joymee@rameshtrading.com.ph</strong></span></div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="doUserLogin()" id="btnUserLogin"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+        </div>
+        <div id="adminLoginForm" class="hidden">
+          <div id="adminLoginAlert"></div>
+          <div class="form-group"><label>Admin Username <span>*</span></label><input class="form-control" type="text" id="alUsername" placeholder="admin@rameshtrading.com.ph" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+          <div class="form-group"><label>Password <span>*</span></label><div class="pw-wrap"><input class="form-control" type="password" id="alPassword" placeholder="Admin password" onkeydown="if(event.key==='Enter')doAdminLogin()"><button type="button" class="pw-eye" onclick="togglePw('alPassword',this)"><i class="fa-solid fa-eye"></i></button></div></div>
+          <button class="btn btn-primary btn-full" onclick="doAdminLogin()" id="btnAdminLogin"><i class="fa-solid fa-shield-halved"></i> Admin Login</button>
+        </div>
+        <div class="auth-switch">No account yet? <a onclick="showView('register')">Register here</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VIEW: REGISTER
+════════════════════════════════════════════════════════════ -->
+<div id="view-register" class="hidden">
+  <div class="auth-wrap">
+    <div class="auth-card" style="max-width:500px">
+      <div class="auth-header"><h1><i class="fa-solid fa-user-plus"></i> Create Account</h1><p>RTC Employee Registration</p></div>
+      <div class="auth-body">
+        <div class="domain-note"><i class="fa-solid fa-building"></i><span>Only <strong>@rameshtrading.com.ph</strong> email addresses can register.</span></div>
+        <div id="registerAlert"></div>
+        <div class="form-group"><label>Full Name <span>*</span></label><input class="form-control" type="text" id="regName" placeholder="Juan Dela Cruz"></div>
+        <div class="form-group"><label>Company Email <span>*</span></label><input class="form-control" type="email" id="regEmail" placeholder="yourname@rameshtrading.com.ph"><p class="form-hint">This will be your login email / username.</p></div>
+        <div class="form-group"><label>Mobile Number <span>*</span></label><input class="form-control" type="tel" id="regMobile" placeholder="09XXXXXXXXX"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Password <span>*</span></label><div class="pw-wrap"><input class="form-control" type="password" id="regPassword" placeholder="Min. 6 characters"><button type="button" class="pw-eye" onclick="togglePw('regPassword',this)"><i class="fa-solid fa-eye"></i></button></div></div>
+          <div class="form-group"><label>Confirm Password <span>*</span></label><div class="pw-wrap"><input class="form-control" type="password" id="regConfirm" placeholder="Re-enter password"><button type="button" class="pw-eye" onclick="togglePw('regConfirm',this)"><i class="fa-solid fa-eye"></i></button></div></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doRegister()" id="btnRegister"><i class="fa-solid fa-user-plus"></i> Create Account</button>
+        <div class="auth-switch">Already have an account? <a onclick="showView('login')">Login here</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VIEW: USER DASHBOARD
+════════════════════════════════════════════════════════════ -->
+<div id="view-user" class="hidden">
+  <div class="page">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div><div class="page-title">My Dashboard</div><div class="page-subtitle" id="userGreeting">Welcome back!</div></div>
+      <button class="btn btn-primary" onclick="showView('book')"><i class="fa-solid fa-plus"></i> Book Appointment</button>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchUserTab('upcoming')" id="userTab-upcoming"><i class="fa-solid fa-calendar-check"></i> Upcoming</button>
+      <button class="tab-btn" onclick="switchUserTab('history')" id="userTab-history"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+    </div>
+    <div class="tab-pane active" id="userPane-upcoming"><div id="userUpcomingList"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></div></div>
+    <div class="tab-pane" id="userPane-history"><div id="userHistoryList"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VIEW: BOOK APPOINTMENT
+════════════════════════════════════════════════════════════ -->
+<div id="view-book" class="hidden">
+  <div class="page" style="max-width:680px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <button class="btn btn-ghost btn-sm" onclick="showView('user')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <div><div class="page-title">Book Appointment</div><div class="page-subtitle">Schedule a showroom visit — subject to admin approval</div></div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div id="bookAlert"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Full Name <span>*</span></label><input class="form-control" type="text" id="bkName" placeholder="Your full name"></div>
+          <div class="form-group"><label>Email <span>*</span></label><input class="form-control" type="email" id="bkEmail" placeholder="your@email.com"></div>
+        </div>
+        <div class="form-group"><label>Mobile Number <span>*</span></label><input class="form-control" type="tel" id="bkMobile" placeholder="09XXXXXXXXX"></div>
+        <div class="form-group"><label>Visit Date <span>*</span></label><input class="form-control" type="date" id="bkDate" onchange="loadBookingSlots()"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Time <span>*</span></label>
+            <select class="form-control" id="bkStartTime" onchange="onStartTimeChange()" disabled><option value="">— Select a date first —</option></select>
+          </div>
+          <div class="form-group">
+            <label>End Time <span>*</span></label>
+            <select class="form-control" id="bkEndTime" disabled><option value="">— Select start time —</option></select>
+          </div>
+        </div>
+        <div id="bookSlotInfo"></div>
+        <div class="form-group"><label>Title <span>*</span></label><input class="form-control" type="text" id="bkTitle" placeholder="e.g. Product Demo, Client Meeting, Showroom Visit..."></div>
+        <div class="form-group"><label>Purpose of Visit <span>*</span></label><input class="form-control" type="text" id="bkPurpose" placeholder="Brief description of what you need..."></div>
+        <div class="form-group">
+          <label>Guest Names <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
+          <textarea class="form-control auto-resize" id="bkGuests" rows="3" style="min-height:80px;resize:none;overflow:hidden" placeholder="Enter guest names, one per line:&#10;Juan dela Cruz&#10;Maria Santos"></textarea>
+          <p class="form-hint">One name per line. These will appear in your calendar invite.</p>
+        </div>
+        <div class="form-group">
+          <label>Remarks <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
+          <textarea class="form-control" id="bkRemarks" placeholder="Additional notes or special requests.&#10;&#10;Press Enter to add a new line."></textarea>
+        </div>
+        <div class="alert alert-warn" style="margin-bottom:16px"><i class="fa-solid fa-clock"></i><span>Your booking will be <strong>Pending</strong> until approved by the admin. You'll receive an email once confirmed.</span></div>
+        <button class="btn btn-primary btn-full" onclick="doCreateBooking()" id="btnBook"><i class="fa-solid fa-paper-plane"></i> Submit Booking Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VIEW: ADMIN DASHBOARD
+════════════════════════════════════════════════════════════ -->
+<div id="view-admin" class="hidden">
+  <div class="page">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div><div class="page-title"><i class="fa-solid fa-shield-halved" style="font-size:18px;margin-right:8px"></i>Admin Dashboard</div><div class="page-subtitle" id="adminGreeting"></div></div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchAdminTab('overview')"  id="adminTab-overview"><i class="fa-solid fa-chart-pie"></i> Overview</button>
+      <button class="tab-btn"        onclick="switchAdminTab('bookings')"  id="adminTab-bookings"><i class="fa-solid fa-table-list"></i> All Bookings</button>
+      <button class="tab-btn"        onclick="switchAdminTab('calendar')"  id="adminTab-calendar"><i class="fa-solid fa-calendar"></i> Calendar</button>
+      <button class="tab-btn"        onclick="switchAdminTab('logs')"      id="adminTab-logs"><i class="fa-solid fa-scroll"></i> Logs</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab-pane active" id="adminPane-overview">
+      <!-- Pending banner -->
+      <div id="pendingBanner" class="pending-banner hidden">
+        <div class="pending-banner-text">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div><div class="pending-banner-title">Bookings Awaiting Approval</div><div class="pending-banner-sub" id="pendingBannerSub">0 booking(s) need your review</div></div>
+        </div>
+        <button class="btn btn-warning btn-sm" onclick="switchAdminTab('bookings');setTimeout(function(){document.getElementById('fStatus').value='Pending';filterBookings();},100)">
+          <i class="fa-solid fa-eye"></i> Review Now
+        </button>
+      </div>
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-info"><p>Total</p><h3 id="aStatTotal">—</h3></div></div>
+        <div class="stat-card" style="border-color:#f59e0b"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-hourglass-half"></i></div><div class="stat-info"><p>Pending</p><h3 id="aStatPending" style="color:#d97706">—</h3></div></div>
+        <div class="stat-card" style="border-color:#2563eb"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-circle-check"></i></div><div class="stat-info"><p>Confirmed</p><h3 id="aStatConfirmed" style="color:#2563eb">—</h3></div></div>
+        <div class="stat-card" style="border-color:#16a34a"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-check-double"></i></div><div class="stat-info"><p>Completed</p><h3 id="aStatCompleted" style="color:#16a34a">—</h3></div></div>
+        <div class="stat-card" style="border-color:#dc2626"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-xmark"></i></div><div class="stat-info"><p>Cancelled</p><h3 id="aStatCancelled" style="color:#dc2626">—</h3></div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div><div class="stat-info"><p>Today</p><h3 id="aStatToday">—</h3></div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-week"></i></div><div class="stat-info"><p>This Month</p><h3 id="aStatMonth">—</h3></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2><i class="fa-solid fa-calendar-day"></i> Today's Schedule</h2></div>
+        <div class="card-body" id="adminTodayList"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ALL BOOKINGS -->
+    <div class="tab-pane" id="adminPane-bookings">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-table-list"></i> All Bookings</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="filter-bar">
+            <div class="filter-group"><label>Search</label><input class="form-control" type="text" id="fSearch" placeholder="Name, email, mobile..." oninput="filterBookings()" style="min-width:180px"></div>
+            <div class="filter-group"><label>Date</label><input class="form-control" type="date" id="fDate" onchange="filterBookings()"></div>
+            <div class="filter-group"><label>Status</label>
+              <select class="form-control" id="fStatus" onchange="filterBookings()">
+                <option value="">All</option><option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>No-show</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="clearFilters()" style="align-self:flex-end"><i class="fa-solid fa-xmark"></i> Clear</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Title</th><th>Client</th><th>Email</th><th>Purpose</th><th>Guests</th><th>Remarks</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="bookingsTableBody"><tr><td colspan="11" style="text-align:center;padding:32px;color:#9ca3af">Loading...</td></tr></tbody>
+            </table>
+          </div>
+          <div id="bookingsPagination" style="margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:flex-end;font-size:12px;color:#6b7280"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="tab-pane" id="adminPane-calendar">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Monthly View</h2></div>
+          <div class="card-body">
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="changeAdminMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+              <h3 id="adminCalTitle">—</h3>
+              <button class="cal-nav-btn" onclick="changeAdminMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="cal-grid" id="adminCalDayLabels"></div>
+            <div class="cal-grid" id="adminCalGrid" style="margin-top:4px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2><i class="fa-solid fa-list-check"></i> Day Detail</h2></div>
+          <div class="card-body" id="adminDayPanel"><div class="empty-state"><i class="fa-regular fa-calendar fa-2x"></i><p>Click a date to see bookings.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="tab-pane" id="adminPane-logs">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-scroll"></i> Activity Logs (Last 50)</h2>
+          <button class="btn btn-ghost btn-sm" onclick="loadActivityLogs()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Details</th></tr></thead>
+            <tbody id="logsTableBody"><tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: RESCHEDULE ───────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalReschedule">
+  <div class="modal-box">
+    <div class="modal-header"><h3><i class="fa-solid fa-calendar-pen"></i> Reschedule Booking</h3><button class="modal-close" onclick="closeModal('modalReschedule')">&times;</button></div>
+    <div class="modal-body">
+      <div id="rescheduleAlert"></div>
+      <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i><span>After rescheduling, the booking returns to <strong>Pending</strong> and needs admin re-approval.</span></div>
+      <input type="hidden" id="rsBookingId">
+      <div class="form-group"><label>New Date <span>*</span></label><input class="form-control" type="date" id="rsDate" onchange="loadRescheduleSlots()"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Time <span>*</span></label><select class="form-control" id="rsStartTime" onchange="onRsStartTimeChange()" disabled><option value="">— Select date first —</option></select></div>
+        <div class="form-group"><label>End Time <span>*</span></label><select class="form-control" id="rsEndTime" disabled><option value="">—</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalReschedule')">Cancel</button>
+      <button class="btn btn-primary" onclick="doReschedule()" id="btnReschedule"><i class="fa-solid fa-calendar-check"></i> Reschedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: STATUS UPDATE ────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalStatus">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header"><h3><i class="fa-solid fa-pen-to-square"></i> Update Status</h3><button class="modal-close" onclick="closeModal('modalStatus')">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="statusBookingId">
+      <div class="form-group"><label>Booking</label><p class="fw-bold" id="statusBookingDisplay" style="font-size:13px;color:#800000"></p></div>
+      <div class="form-group"><label>Client</label><p id="statusBookingClient" style="font-size:13px;color:#374151"></p></div>
+      <div class="form-group"><label>Date &amp; Time</label><p id="statusBookingDT" style="font-size:13px;color:#374151"></p></div>
+      <hr class="divider">
+      <div class="form-group">
+        <label>New Status <span>*</span></label>
+        <select class="form-control" id="statusSelect" onchange="updateStatusUI()">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed (Approve)</option>
+          <option value="Cancelled">Cancelled (Reject)</option>
+          <option value="Completed">Completed</option>
+          <option value="No-show">No-show</option>
+        </select>
+      </div>
+      <div id="statusHint" class="alert alert-info hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalStatus')">Cancel</button>
+      <button class="btn btn-primary" id="btnUpdateStatus" onclick="doUpdateStatus()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz3PPS5VpeiZiytGQkIe9TsnoJLEA1I9A209XvZ_bVy2DMys6D9-Hqm8p9lDTBNe1lc/exec';
+
+// ── Time Helpers (mirrors Code.gs logic, runs on frontend) ───
+function timeStrToMin(t) {
+  const m = (t||'').trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (!m) return 0;
+  let h = parseInt(m[1]), min = parseInt(m[2]), p = m[3].toUpperCase();
+  if (p === 'PM' && h !== 12) h += 12;
+  if (p === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+function minToTimeStr(total) {
+  const h   = Math.floor(total / 60);
+  const m   = total % 60;
+  const p   = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return h12 + ':' + String(m).padStart(2, '0') + ' ' + p;
+}
+function timesOverlap(aS, aE, bS, bE) { return aS < bE && aE > bS; }
+
+// Build list of valid start minutes given booked blocks + showroom config
+function buildStartMins(bookedBlocks, openMin, closeMin, slotMin) {
+  const starts = [];
+  for (let t = openMin; t < closeMin; t += slotMin) {
+    // Is t inside any booked block?
+    const inBooked = bookedBlocks.some(function(b) { return t >= b.startMin && t < b.endMin; });
+    if (inBooked) continue;
+    // Is there at least slotMin gap before next booking or close?
+    let nextBlock = closeMin;
+    bookedBlocks.forEach(function(b) { if (b.startMin > t) nextBlock = Math.min(nextBlock, b.startMin); });
+    if (nextBlock - t >= slotMin) starts.push(t);
+  }
+  return starts;
+}
+
+// Build list of valid end minutes given a selected start minute
+function buildEndMins(startMin, bookedBlocks, closeMin, slotMin) {
+  // Find nearest booking start that is strictly after startMin
+  let cap = closeMin;
+  bookedBlocks.forEach(function(b) { if (b.startMin > startMin) cap = Math.min(cap, b.startMin); });
+  const ends = [];
+  for (let t = startMin + slotMin; t <= cap; t += slotMin) ends.push(t);
+  return ends;
+}
+
+// ── App State ─────────────────────────────────────────────────
+const App = {
+  user:  null,
+  admin: null,
+  currentView: 'public',
+  calMonth: new Date().getMonth() + 1,
+  calYear:  new Date().getFullYear(),
+  calData:  {},
+  adminCalMonth: new Date().getMonth() + 1,
+  adminCalYear:  new Date().getFullYear(),
+  adminCalData:  {},
+  allBookings:     [],
+  userBookings:    [],
+  bookedBlocks:    [],   // for booking form
+  rsBookedBlocks:  [],   // for reschedule modal
+  slotConfig:      { openMin: 480, closeMin: 1080, slotMin: 30 },
+};
+
+const MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_LBL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ── Init ──────────────────────────────────────────────────────
+window.onload = function() {
+  ['calDayLabels','adminCalDayLabels'].forEach(function(id) {
+    const el = document.getElementById(id);
+    DAY_LBL.forEach(function(d) { const s = document.createElement('div'); s.className = 'cal-day-label'; s.textContent = d; el.appendChild(s); });
+  });
+  const today = todayStr();
+  ['bkDate','rsDate'].forEach(function(id) { const el = document.getElementById(id); if (el) el.min = today; });
+  loadPublicDashboard();
+  renderNav();
+};
+
+// ── Utils ─────────────────────────────────────────────────────
+function todayStr() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(s) { if (!s) return '—'; const d = new Date(s + 'T12:00:00'); return d.toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' }); }
+function fmtDateLong(s) { if (!s) return '—'; const d = new Date(s + 'T12:00:00'); return d.toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' }); }
+function fmtTs(iso) { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}); }
+
+function statusBadge(s) {
+  const map = { Pending:'badge-pending', Confirmed:'badge-confirmed', Cancelled:'badge-cancelled', Completed:'badge-completed', 'No-show':'badge-noshow' };
+  const ico = { Pending:'fa-hourglass-half', Confirmed:'fa-circle-check', Cancelled:'fa-circle-xmark', Completed:'fa-check-double', 'No-show':'fa-user-slash' };
+  return `<span class="badge ${map[s]||'badge-noshow'}"><i class="fa-solid ${ico[s]||'fa-circle'}"></i>${s}</span>`;
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'info';
+  const icons  = { success:'fa-circle-check', error:'fa-circle-xmark', info:'fa-circle-info', warn:'fa-triangle-exclamation' };
+  const colors = { success:'#16a34a', error:'#dc2626', info:'#2563eb', warn:'#d97706' };
+  const tc = document.getElementById('toast-container');
+  const t  = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.innerHTML = `<i class="fa-solid ${icons[type]}" style="color:${colors[type]};flex-shrink:0"></i><span>${msg}</span>`;
+  tc.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 4500);
+}
+function showAlert(id, msg, type) { const el = document.getElementById(id); if (el) el.innerHTML = msg ? `<div class="alert alert-${type||'error'}">${msg}</div>` : ''; }
+
+// ── Loading ───────────────────────────────────────────────────
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+// ── API ───────────────────────────────────────────────────────
+function api(action, params, onSuccess, onError) {
+  showLoading();
+  const body = Object.assign({ action: action }, params || {});
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { hideLoading(); if (onSuccess) onSuccess(data); })
+  .catch(function(err) {
+    hideLoading();
+    if (onError) onError(err);
+    else toast('Network error: ' + err.message, 'error');
+    console.error('[RTC API]', action, err);
+  });
+}
+
+// ── Modal ─────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ── Nav ───────────────────────────────────────────────────────
+function renderNav() {
+  const nav = document.getElementById('headerNav');
+  const pendingCount = App.allBookings.filter(function(b) { return b.status === 'Pending'; }).length;
+  let h = '';
+  if (App.admin) {
+    const adminName = App.admin.displayName || App.admin.username;
+    h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(adminName, '', App.admin.avatar)}<span class="avatar-btn-name">${adminName}</span></button>`;
+    h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-calendar"></i> Calendar</button>`;
+    h += `<button class="nav-btn ${App.currentView==='admin'?'active':''}" onclick="showView('admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard${pendingCount > 0 ? `<span class="pending-badge">${pendingCount}</span>` : ''}</button>`;
+    h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
+  } else if (App.user) {
+    h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(App.user.fullName, '', App.user.avatar)}<span class="avatar-btn-name">${App.user.fullName}</span></button>`;
+    h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
+    h += `<button class="nav-btn ${App.currentView==='user'?'active':''}" onclick="showView('user')"><i class="fa-solid fa-calendar-check"></i> My Bookings</button>`;
+    h += `<button class="nav-btn accent" onclick="showView('book')"><i class="fa-solid fa-plus"></i> Book Now</button>`;
+    h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
+  } else {
+    h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
+    h += `<button class="nav-btn" onclick="showView('login')"><i class="fa-solid fa-right-to-bracket"></i> Login</button>`;
+    h += `<button class="nav-btn accent" onclick="showView('register')"><i class="fa-solid fa-user-plus"></i> Register</button>`;
+  }
+  nav.innerHTML = h;
+}
+
+// ── Views ─────────────────────────────────────────────────────
+const VIEWS = ['public','login','register','user','admin','book'];
+function showView(v) {
+  VIEWS.forEach(function(name) {
+    const el = document.getElementById('view-' + name);
+    if (el) el.classList.toggle('hidden', name !== v);
+  });
+  App.currentView = v;
+  renderNav();
+  window.scrollTo(0, 0);
+  if (v === 'user')  { if (App.user)  { document.getElementById('userGreeting').textContent = 'Welcome back, ' + App.user.fullName + '!'; loadUserBookings(); } else showView('login'); }
+  if (v === 'admin') { if (App.admin) { document.getElementById('adminGreeting').textContent = 'Logged in as: ' + App.admin.username; loadAdminStats(); loadAdminToday(); } else showView('login'); }
+  if (v === 'book')  { if (!App.user) { showView('login'); return; } prefillBookingForm(); resetBookingForm(); }
+}
+
+// ── PUBLIC DASHBOARD ──────────────────────────────────────────
+function loadPublicDashboard() {
+  api('getDashboardStats', {}, function(r) {
+    if (r && r.success) {
+      document.getElementById('statTotal').textContent = r.total;
+      document.getElementById('statToday').textContent = r.today;
+      document.getElementById('statMonth').textContent = r.thisMonth;
+      document.getElementById('statAvail').textContent = r.availableToday;
+    }
+  });
+  loadPublicCalendar();
+}
+
+function loadPublicCalendar() {
+  api('getPublicCalendarData', { month: App.calMonth, year: App.calYear }, function(r) {
+    if (r && r.success) { App.calData = r.data; renderPublicCalendar(); }
+  });
+}
+function changeMonth(dir) {
+  App.calMonth += dir;
+  if (App.calMonth > 12) { App.calMonth = 1; App.calYear++; }
+  if (App.calMonth < 1)  { App.calMonth = 12; App.calYear--; }
+  loadPublicCalendar();
+}
+
+function renderPublicCalendar() {
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  document.getElementById('calTitle').textContent = MONTHS[App.calMonth-1] + ' ' + App.calYear;
+  const firstDay = new Date(App.calYear, App.calMonth-1, 1).getDay();
+  const daysInMonth = new Date(App.calYear, App.calMonth, 0).getDate();
+  const today = todayStr();
+  for (let i = 0; i < firstDay; i++) { const e = document.createElement('div'); e.className = 'cal-day cal-empty'; grid.appendChild(e); }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds   = App.calYear + '-' + String(App.calMonth).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const info = App.calData[ds] || { booked:0, blocked:false };
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    if (ds === today)    cell.classList.add('cal-today');
+    if (info.blocked)    cell.classList.add('cal-blocked');
+    else if (ds < today) cell.classList.add('cal-past');
+    cell.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-badges">${info.blocked ? '<div class="cal-badge cal-badge-block">Blocked</div>' : info.booked > 0 ? `<div class="cal-badge cal-badge-booked">${info.booked} Booked</div>` : ''}</div>`;
+    if (!info.blocked && ds >= today) { cell.onclick = (function(s) { return function() { selectPublicDate(s); }; })(ds); }
+    grid.appendChild(cell);
+  }
+}
+
+function selectPublicDate(ds) {
+  document.querySelectorAll('#calGrid .cal-day').forEach(function(el) { el.classList.remove('cal-selected'); });
+  const d = parseInt(ds.split('-')[2]);
+  const cells = document.querySelectorAll('#calGrid .cal-day:not(.cal-empty)');
+  if (cells[d-1]) cells[d-1].classList.add('cal-selected');
+  loadPublicSlots(ds);
+}
+
+function loadPublicSlots(ds) {
+  const panel = document.getElementById('slotPanel');
+  panel.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+  api('getPublicSlots', { date: ds }, function(r) {
+    const label = fmtDateLong(ds);
+    let h = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div>`;
+    if (r.blocked) {
+      h += `<div class="alert alert-warn"><i class="fa-solid fa-ban"></i>${r.message || 'This date is blocked.'}</div>`;
+      panel.innerHTML = h; return;
+    }
+
+    const openMin  = r.openMin  || 480;
+    const closeMin = r.closeMin || 1080;
+    const blocks   = (r.bookedBlocks || []).slice().sort(function(a,b) { return a.startMin - b.startMin; });
+
+    // Build available windows from gaps
+    const availWindows = [];
+    let cursor = openMin;
+    blocks.forEach(function(b) {
+      if (cursor < b.startMin) availWindows.push({ startMin: cursor, endMin: b.startMin });
+      cursor = Math.max(cursor, b.endMin);
+    });
+    if (cursor < closeMin) availWindows.push({ startMin: cursor, endMin: closeMin });
+
+    const hasAvail = availWindows.length > 0;
+
+    // Show booked blocks
+    if (blocks.length > 0) {
+      blocks.forEach(function(b) {
+        h += `<div class="slot-item slot-booked"><div class="slot-time"><i class="fa-regular fa-clock" style="margin-right:6px"></i>${b.startTime} – ${b.endTime}</div><span class="slot-label booked">Booked</span></div>`;
+      });
+    }
+
+    // Show available windows
+    if (availWindows.length > 0) {
+      availWindows.forEach(function(w) {
+        h += `<div class="slot-item slot-avail"><div class="slot-time"><i class="fa-regular fa-clock" style="margin-right:6px"></i>${minToTimeStr(w.startMin)} – ${minToTimeStr(w.endMin)}</div><span class="slot-label avail">Available</span></div>`;
+      });
+    } else {
+      h += `<div class="alert alert-warn" style="margin-top:8px"><i class="fa-solid fa-calendar-xmark"></i> Fully booked for this day.</div>`;
+    }
+
+    if (hasAvail && App.user) {
+      h += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="prefillAndBook('${ds}')"><i class="fa-solid fa-calendar-plus"></i> Book This Date</button>`;
+    } else if (!App.user && hasAvail) {
+      h += `<div class="alert alert-info" style="margin-top:12px"><i class="fa-solid fa-circle-info"></i><span><a onclick="showView('login')" style="color:#1e40af;font-weight:700;cursor:pointer">Login</a> or <a onclick="showView('register')" style="color:#1e40af;font-weight:700;cursor:pointer">register</a> to book.</span></div>`;
+    }
+    panel.innerHTML = h;
+  });
+}
+
+function prefillAndBook(ds) {
+  showView('book');
+  setTimeout(function() { document.getElementById('bkDate').value = ds; loadBookingSlots(); }, 100);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────
+function switchLoginTab(tab) {
+  const u = tab === 'user';
+  document.getElementById('tabUserLogin').classList.toggle('active', u);
+  document.getElementById('tabAdminLogin').classList.toggle('active', !u);
+  document.getElementById('userLoginForm').classList.toggle('hidden', !u);
+  document.getElementById('adminLoginForm').classList.toggle('hidden', u);
+  showAlert('userLoginAlert','',''); showAlert('adminLoginAlert','','');
+}
+function toggleForgot() { document.getElementById('forgotMsg').classList.toggle('show'); }
+
+function doUserLogin() {
+  const email = document.getElementById('ulEmail').value.trim();
+  const pwd   = document.getElementById('ulPassword').value;
+  if (!email || !pwd) { showAlert('userLoginAlert', 'Please enter email and password.', 'error'); return; }
+  setBtnLoading('btnUserLogin', true);
+  api('userLogin', { email: email, password: pwd }, function(r) {
+    setBtnLoading('btnUserLogin', false);
+    if (r && r.success) { App.user = r.user; toast('Welcome, ' + r.user.fullName + '!', 'success'); renderNav(); showView('user'); }
+    else showAlert('userLoginAlert', (r && r.message) || 'Login failed.', 'error');
+  }, function() { setBtnLoading('btnUserLogin', false); showAlert('userLoginAlert', 'Network error. Try again.', 'error'); });
+}
+
+function doAdminLogin() {
+  const username = document.getElementById('alUsername').value.trim();
+  const pwd      = document.getElementById('alPassword').value;
+  if (!username || !pwd) { showAlert('adminLoginAlert', 'Enter username and password.', 'error'); return; }
+  setBtnLoading('btnAdminLogin', true);
+  api('adminLogin', { username: username, password: pwd }, function(r) {
+    setBtnLoading('btnAdminLogin', false);
+    if (r && r.success) { App.admin = { username: r.username, displayName: r.displayName || r.username, position: r.position || '' }; toast('Admin access granted!', 'success'); renderNav(); showView('admin'); }
+    else showAlert('adminLoginAlert', (r && r.message) || 'Invalid credentials.', 'error');
+  }, function() { setBtnLoading('btnAdminLogin', false); showAlert('adminLoginAlert', 'Network error. Try again.', 'error'); });
+}
+
+function doRegister() {
+  const name    = document.getElementById('regName').value.trim();
+  const email   = document.getElementById('regEmail').value.trim();
+  const mobile  = document.getElementById('regMobile').value.trim();
+  const pwd     = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regConfirm').value;
+  if (!name || !email || !mobile || !pwd) { showAlert('registerAlert', 'All fields are required.', 'error'); return; }
+  if (pwd !== confirm) { showAlert('registerAlert', 'Passwords do not match.', 'error'); return; }
+  if (pwd.length < 6)  { showAlert('registerAlert', 'Password must be at least 6 characters.', 'error'); return; }
+  if (!email.toLowerCase().endsWith('@rameshtrading.com.ph')) { showAlert('registerAlert', 'Only <strong>@rameshtrading.com.ph</strong> email addresses can register.', 'error'); return; }
+  setBtnLoading('btnRegister', true);
+  api('registerUser', { fullName: name, email: email, mobile: mobile, password: pwd }, function(r) {
+    setBtnLoading('btnRegister', false);
+    if (r && r.success) { showAlert('registerAlert', '<i class="fa-solid fa-circle-check"></i> ' + r.message, 'success'); toast('Account created!', 'success'); setTimeout(function() { showView('login'); }, 2000); }
+    else showAlert('registerAlert', (r && r.message) || 'Registration failed.', 'error');
+  }, function() { setBtnLoading('btnRegister', false); showAlert('registerAlert', 'Network error. Try again.', 'error'); });
+}
+
+function doLogout() { App.user = null; App.admin = null; App.allBookings = []; toast('Logged out.', 'info'); renderNav(); showView('public'); }
+
+// ── BOOKING FORM ──────────────────────────────────────────────
+function prefillBookingForm() {
+  if (!App.user) return;
+  document.getElementById('bkName').value   = App.user.fullName;
+  document.getElementById('bkEmail').value  = App.user.email;
+  document.getElementById('bkMobile').value = App.user.mobile;
+}
+
+function resetBookingForm() {
+  document.getElementById('bkDate').value = '';
+  document.getElementById('bkStartTime').innerHTML = '<option value="">— Select a date first —</option>';
+  document.getElementById('bkStartTime').disabled = true;
+  document.getElementById('bkEndTime').innerHTML = '<option value="">— Select start time —</option>';
+  document.getElementById('bkEndTime').disabled = true;
+  document.getElementById('bkTitle').value = '';
+  document.getElementById('bkPurpose').value = '';
+  document.getElementById('bkRemarks').value = '';
+  document.getElementById('bkGuests').value  = '';
+  document.getElementById('bookSlotInfo').innerHTML = '';
+  showAlert('bookAlert','','');
+  App.bookedBlocks = [];
+}
+
+function loadBookingSlots() {
+  const ds = document.getElementById('bkDate').value;
+  const startSel = document.getElementById('bkStartTime');
+  const endSel   = document.getElementById('bkEndTime');
+  const info     = document.getElementById('bookSlotInfo');
+  startSel.innerHTML = '<option value="">Loading...</option>'; startSel.disabled = true;
+  endSel.innerHTML   = '<option value="">—</option>';         endSel.disabled   = true;
+  info.innerHTML     = '';
+  if (!ds) return;
+
+  api('getPublicSlots', { date: ds }, function(r) {
+    if (!r || !r.success) {
+      startSel.innerHTML = '<option value="">Error — check console</option>';
+      info.innerHTML = '<div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> API error: ' + (r && r.message || 'Unknown error') + '</div>';
+      return;
+    }
+    if (r.blocked) {
+      startSel.innerHTML = '<option value="">Date not available</option>';
+      info.innerHTML = '<div class="alert alert-warn"><i class="fa-solid fa-ban"></i> This date is blocked. Please choose another date.</div>';
+      return;
+    }
+
+    // Store config from backend
+    App.bookedBlocks = r.bookedBlocks || [];
+    App.slotConfig   = { openMin: r.openMin || 480, closeMin: r.closeMin || 1080, slotMin: r.slotMin || 30 };
+
+    const { openMin, closeMin, slotMin } = App.slotConfig;
+    const startMins = buildStartMins(App.bookedBlocks, openMin, closeMin, slotMin);
+
+    if (startMins.length === 0) {
+      startSel.innerHTML = '<option value="">No available times</option>';
+      info.innerHTML = '<div class="alert alert-warn"><i class="fa-solid fa-calendar-xmark"></i> No available time slots for this date. Try another date.</div>';
+      return;
+    }
+
+    // Show booked blocks as info
+    if (App.bookedBlocks.length > 0) {
+      const bookedList = App.bookedBlocks.map(function(b) { return b.startTime + ' – ' + b.endTime; }).join(', ');
+      info.innerHTML = '<div class="alert alert-info" style="font-size:12px"><i class="fa-solid fa-circle-info"></i><span>Already booked: <strong>' + bookedList + '</strong></span></div>';
+    }
+
+    startSel.innerHTML = '<option value="">— Select start time —</option>';
+    startMins.forEach(function(m) {
+      const o = document.createElement('option');
+      o.value = minToTimeStr(m);
+      o.textContent = minToTimeStr(m);
+      startSel.appendChild(o);
+    });
+    startSel.disabled = false;
+  });
+}
+
+function onStartTimeChange() {
+  const startStr = document.getElementById('bkStartTime').value;
+  const endSel   = document.getElementById('bkEndTime');
+  endSel.innerHTML = '<option value="">—</option>'; endSel.disabled = true;
+  if (!startStr) return;
+
+  const startMin = timeStrToMin(startStr);
+  const { closeMin, slotMin } = App.slotConfig;
+  const endMins = buildEndMins(startMin, App.bookedBlocks, closeMin, slotMin);
+
+  endSel.innerHTML = '<option value="">— Select end time —</option>';
+  endMins.forEach(function(m) {
+    const o = document.createElement('option');
+    o.value = minToTimeStr(m);
+    o.textContent = minToTimeStr(m) + '  (' + Math.round((m - startMin) / 60 * 10) / 10 + 'h)';
+    endSel.appendChild(o);
+  });
+  endSel.disabled = endMins.length === 0;
+}
+
+function doCreateBooking() {
+  const name      = document.getElementById('bkName').value.trim();
+  const email     = document.getElementById('bkEmail').value.trim();
+  const mobile    = document.getElementById('bkMobile').value.trim();
+  const date      = document.getElementById('bkDate').value;
+  const startTime = document.getElementById('bkStartTime').value;
+  const endTime   = document.getElementById('bkEndTime').value;
+  const title     = document.getElementById('bkTitle').value.trim();
+  const purpose   = document.getElementById('bkPurpose').value.trim();
+  const remarks   = document.getElementById('bkRemarks').value.trim();
+  const guests    = document.getElementById('bkGuests').value.trim();
+
+  if (!name || !email || !mobile || !date || !startTime || !endTime || !title || !purpose) {
+    showAlert('bookAlert', 'Please fill in all required fields, including start and end time.', 'error'); return;
+  }
+  setBtnLoading('btnBook', true);
+  api('createBooking', { userId: App.user.userId, fullName: name, email: email, mobile: mobile, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests }, function(r) {
+    setBtnLoading('btnBook', false);
+    if (r && r.success) {
+      toast('Booking submitted! Awaiting admin approval.', 'warn');
+      showAlert('bookAlert', '<i class="fa-solid fa-hourglass-half"></i> ' + r.message + ' (ID: ' + r.bookingId + ')', 'warn');
+      resetBookingForm();
+      prefillBookingForm();
+      loadPublicDashboard();
+    } else {
+      showAlert('bookAlert', (r && r.message) || 'Booking failed. Try again.', 'error');
+    }
+  }, function() { setBtnLoading('btnBook', false); showAlert('bookAlert', 'Network error. Try again.', 'error'); });
+}
+
+// ── USER BOOKINGS ─────────────────────────────────────────────
+function switchUserTab(tab) {
+  ['upcoming','history'].forEach(function(t) {
+    document.getElementById('userTab-'  + t).classList.toggle('active', t === tab);
+    document.getElementById('userPane-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+function loadUserBookings() {
+  api('getUserBookings', { userId: App.user.userId }, function(r) {
+    App.userBookings = (r && r.success) ? r.bookings : [];
+    renderUserUpcoming();
+    renderUserHistory();
+  });
+}
+
+function renderUserUpcoming() {
+  const today = todayStr();
+  const bks = App.userBookings.filter(function(b) { return b.bookingDate >= today && b.status !== 'Cancelled'; });
+  renderBookingCards('userUpcomingList', bks, true);
+}
+function renderUserHistory() {
+  const today = todayStr();
+  const bks = App.userBookings.filter(function(b) { return b.bookingDate < today || b.status === 'Cancelled' || b.status === 'Completed'; });
+  renderBookingCards('userHistoryList', bks, false);
+}
+
+function renderBookingCards(id, bookings, showActions) {
+  const el = document.getElementById(id);
+  if (!bookings || bookings.length === 0) {
+    el.innerHTML = `<div class="empty-state"><i class="fa-regular fa-calendar-xmark"></i><p>${showActions ? 'No upcoming bookings. <a onclick="showView(\'book\')" style="color:#800000;cursor:pointer">Book one now!</a>' : 'No history yet.'}</p></div>`;
+    return;
+  }
+  let h = '';
+  bookings.forEach(function(b) {
+    const isPending = b.status === 'Pending';
+    h += `<div class="booking-card${isPending?' pending-card':''}">
+      <div class="booking-card-header">
+        <div>
+          <div class="booking-id">ID: ${b.bookingId}</div>
+          <div class="booking-date"><i class="fa-solid fa-calendar" style="margin-right:6px"></i>${fmtDate(b.bookingDate)}</div>
+        </div>
+        ${statusBadge(b.status)}
+      </div>
+      <div class="booking-time"><i class="fa-regular fa-clock" style="margin-right:6px"></i>${b.timeRange}</div>
+      ${b.title ? `<div class="booking-title">${b.title}</div>` : ''}
+      <div class="booking-purpose text-muted">${b.purpose}</div>
+      ${b.guests  ? `<div class="booking-remarks"><i class="fa-solid fa-users" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
+      ${b.remarks ? `<div class="booking-remarks"><i class="fa-solid fa-note-sticky" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.remarks)}</div>` : ''}
+      ${isPending ? `<div class="alert alert-warn" style="padding:8px 12px;margin-bottom:10px;font-size:12px"><i class="fa-solid fa-hourglass-half"></i> Awaiting admin approval</div>` : ''}
+      ${showActions && (b.status === 'Confirmed' || b.status === 'Pending') ? `
+      <div class="booking-actions">
+        ${b.status === 'Confirmed' ? `<button class="btn btn-outline btn-sm" onclick="openReschedule('${b.bookingId}')"><i class="fa-solid fa-calendar-pen"></i> Reschedule</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="userCancel('${b.bookingId}')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+      </div>` : ''}
+    </div>`;
+  });
+  el.innerHTML = h;
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/\n/g,'<br>'); }
+
+function userCancel(bookingId) {
+  if (!confirm('Cancel booking ' + bookingId + '?')) return;
+  api('cancelBooking', { bookingId: bookingId, userId: App.user.userId }, function(r) {
+    if (r && r.success) { toast('Booking cancelled.', 'success'); loadUserBookings(); }
+    else toast((r && r.message) || 'Failed.', 'error');
+  });
+}
+
+function openReschedule(bookingId) {
+  document.getElementById('rsBookingId').value = bookingId;
+  document.getElementById('rsDate').value = '';
+  document.getElementById('rsStartTime').innerHTML = '<option value="">— Select date first —</option>';
+  document.getElementById('rsStartTime').disabled = true;
+  document.getElementById('rsEndTime').innerHTML = '<option value="">—</option>';
+  document.getElementById('rsEndTime').disabled = true;
+  App.rescheduleSlots = [];
+  showAlert('rescheduleAlert','','');
+  openModal('modalReschedule');
+}
+
+function loadRescheduleSlots() {
+  const ds = document.getElementById('rsDate').value;
+  const startSel = document.getElementById('rsStartTime');
+  const endSel   = document.getElementById('rsEndTime');
+  startSel.innerHTML = '<option value="">Loading...</option>'; startSel.disabled = true;
+  endSel.innerHTML   = '<option value="">—</option>';         endSel.disabled   = true;
+  if (!ds) return;
+  api('getPublicSlots', { date: ds }, function(r) {
+    if (r.blocked) { startSel.innerHTML = '<option value="">Date not available</option>'; showAlert('rescheduleAlert','Date is blocked.','error'); return; }
+    App.rsBookedBlocks = r.bookedBlocks || [];
+    App.slotConfig     = { openMin: r.openMin||480, closeMin: r.closeMin||1080, slotMin: r.slotMin||30 };
+    const { openMin, closeMin, slotMin } = App.slotConfig;
+    const startMins = buildStartMins(App.rsBookedBlocks, openMin, closeMin, slotMin);
+    if (startMins.length === 0) { startSel.innerHTML = '<option value="">No available times</option>'; return; }
+    startSel.innerHTML = '<option value="">— Select start time —</option>';
+    startMins.forEach(function(m) {
+      const o = document.createElement('option'); o.value = minToTimeStr(m); o.textContent = minToTimeStr(m); startSel.appendChild(o);
+    });
+    startSel.disabled = false;
+  });
+}
+
+function onRsStartTimeChange() {
+  const startStr = document.getElementById('rsStartTime').value;
+  const endSel   = document.getElementById('rsEndTime');
+  endSel.innerHTML = '<option value="">—</option>'; endSel.disabled = true;
+  if (!startStr) return;
+  const startMin = timeStrToMin(startStr);
+  const { closeMin, slotMin } = App.slotConfig;
+  const endMins = buildEndMins(startMin, App.rsBookedBlocks, closeMin, slotMin);
+  endSel.innerHTML = '<option value="">— Select end time —</option>';
+  endMins.forEach(function(m) {
+    const o = document.createElement('option');
+    o.value = minToTimeStr(m);
+    o.textContent = minToTimeStr(m) + '  (' + Math.round((m - startMin) / 60 * 10) / 10 + 'h)';
+    endSel.appendChild(o);
+  });
+  endSel.disabled = endMins.length === 0;
+}
+
+function doReschedule() {
+  const bookingId     = document.getElementById('rsBookingId').value;
+  const newDate       = document.getElementById('rsDate').value;
+  const newStartTime  = document.getElementById('rsStartTime').value;
+  const newEndTime    = document.getElementById('rsEndTime').value;
+  if (!newDate || !newStartTime || !newEndTime) { showAlert('rescheduleAlert','Select a new date, start time, and end time.','error'); return; }
+  setBtnLoading('btnReschedule', true);
+  api('rescheduleBooking', { bookingId: bookingId, userId: App.user.userId, newDate: newDate, newStartTime: newStartTime, newEndTime: newEndTime }, function(r) {
+    setBtnLoading('btnReschedule', false);
+    if (r && r.success) { toast(r.message, 'warn'); closeModal('modalReschedule'); loadUserBookings(); }
+    else showAlert('rescheduleAlert', (r && r.message) || 'Failed.', 'error');
+  }, function() { setBtnLoading('btnReschedule', false); showAlert('rescheduleAlert','Network error. Try again.','error'); });
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+function switchAdminTab(tab) {
+  ['overview','bookings','calendar','logs'].forEach(function(t) {
+    document.getElementById('adminTab-'  + t).classList.toggle('active', t === tab);
+    document.getElementById('adminPane-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'bookings' && App.allBookings.length === 0) loadAdminBookings();
+  if (tab === 'calendar') loadAdminCalendar();
+  if (tab === 'logs') loadActivityLogs();
+}
+
+function loadAdminStats() {
+  api('getAdminStats', {}, function(r) {
+    if (!r || !r.success) return;
+    document.getElementById('aStatTotal').textContent     = r.total;
+    document.getElementById('aStatPending').textContent   = r.pending;
+    document.getElementById('aStatConfirmed').textContent = r.confirmed;
+    document.getElementById('aStatCompleted').textContent = r.completed;
+    document.getElementById('aStatCancelled').textContent = r.cancelled;
+    document.getElementById('aStatToday').textContent     = r.today;
+    document.getElementById('aStatMonth').textContent     = r.thisMonth;
+
+    // Pending banner
+    const banner = document.getElementById('pendingBanner');
+    if (r.pending > 0) {
+      banner.classList.remove('hidden');
+      document.getElementById('pendingBannerSub').textContent = r.pending + ' booking(s) need your review';
+    } else {
+      banner.classList.add('hidden');
+    }
+  });
+}
+
+function loadAdminToday() {
+  const today = todayStr();
+  api('getAdminCalendarData', { month: new Date().getMonth()+1, year: new Date().getFullYear() }, function(r) {
+    const el  = document.getElementById('adminTodayList');
+    const bks = (r && r.success && r.data[today]) ? r.data[today] : [];
+    if (bks.length === 0) { el.innerHTML = '<div class="empty-state" style="padding:24px"><p>No bookings today.</p></div>'; return; }
+    let h = '';
+    bks.forEach(function(b) {
+      const isPending = b.status === 'Pending';
+      h += `<div class="slot-item${isPending?' slot-booked':''}" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+          <div class="slot-time">${b.timeRange}</div>${statusBadge(b.status)}
+        </div>
+        ${b.title ? `<div style="font-weight:700;font-size:13px">${b.title}</div>` : ''}
+        <div style="font-size:13px;color:#4b5563">${b.fullName} · ${b.email} · ${b.mobile}</div>
+        <div class="text-sm text-muted">${b.purpose}</div>
+        ${b.remarks ? `<div class="text-sm text-muted" style="font-style:italic">${escHtml(b.remarks)}</div>` : ''}
+        <div class="booking-actions" style="margin-top:4px">
+          ${isPending ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${b.bookingId}')"><i class="fa-solid fa-check"></i> Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="quickReject('${b.bookingId}')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${b.bookingId}','${b.status}','${b.fullName}','${fmtDate(today)}','${b.timeRange}')"><i class="fa-solid fa-pen-to-square"></i> Update</button>
+        </div>
+      </div>`;
+    });
+    el.innerHTML = h;
+  });
+}
+
+// Bookings Table
+var PAGE_SIZE = 15, currentPage = 1, filteredBookings = [];
+
+function loadAdminBookings() {
+  api('getAdminAllBookings', {}, function(r) {
+    App.allBookings = (r && r.success) ? r.bookings : [];
+    filteredBookings = App.allBookings;
+    currentPage = 1;
+    renderBookingsTable(filteredBookings);
+    renderNav(); // update pending count badge
+  });
+}
+
+function filterBookings() {
+  const q  = document.getElementById('fSearch').value.trim().toLowerCase();
+  const dt = document.getElementById('fDate').value;
+  const st = document.getElementById('fStatus').value;
+  filteredBookings = App.allBookings.filter(function(b) {
+    const mQ = !q || [b.fullName,b.email,b.mobile,b.bookingId,b.title||'',b.purpose,b.remarks||''].some(function(f) { return f.toLowerCase().includes(q); });
+    return mQ && (!dt || b.bookingDate === dt) && (!st || b.status === st);
+  });
+  currentPage = 1;
+  renderBookingsTable(filteredBookings);
+}
+
+function clearFilters() {
+  ['fSearch','fDate'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('fStatus').value = '';
+  filteredBookings = App.allBookings;
+  renderBookingsTable(filteredBookings);
+}
+
+function renderBookingsTable(bookings) {
+  const tbody = document.getElementById('bookingsTableBody');
+  const total = bookings.length;
+  const start = (currentPage-1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+  const page  = bookings.slice(start, end);
+
+  if (page.length === 0) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:#9ca3af">No bookings found.</td></tr>'; document.getElementById('bookingsPagination').innerHTML = ''; return; }
+
+  tbody.innerHTML = page.map(function(b) {
+    const isPending = b.status === 'Pending';
+    return `<tr class="${isPending?'row-pending':''}">
+      <td class="text-sm text-muted" style="white-space:nowrap">${b.bookingId}</td>
+      <td class="fw-bold" style="white-space:nowrap">${fmtDate(b.bookingDate)}</td>
+      <td class="text-sm" style="white-space:nowrap">${b.timeRange}</td>
+      <td class="fw-bold">${b.title || '—'}</td>
+      <td class="fw-bold"><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button><div class="text-sm text-muted">${b.mobile}</div></td>
+      <td class="text-sm text-muted">${b.email}</td>
+      <td class="text-sm" style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.purpose}</td>
+      <td class="text-sm" style="max-width:130px">${b.guests ? escHtml(b.guests).replace(/\n/g,'<br>') : '—'}</td>
+      <td class="text-sm text-muted" style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.remarks || '—'}</td>
+      <td>${statusBadge(b.status)}</td>
+      <td><div class="td-actions">
+        ${isPending ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${b.bookingId}')"><i class="fa-solid fa-check"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="quickReject('${b.bookingId}')"><i class="fa-solid fa-xmark"></i></button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${b.bookingId}','${b.status}','${b.fullName}','${fmtDate(b.bookingDate)}','${b.timeRange}')"><i class="fa-solid fa-pen-to-square"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  let pag = `<span>Showing ${start+1}–${end} of ${total}</span>`;
+  if (totalPages > 1) {
+    pag += ` <button class="btn btn-ghost btn-sm" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    pag += ` <span>${currentPage}/${totalPages}</span>`;
+    pag += ` <button class="btn btn-ghost btn-sm" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  }
+  document.getElementById('bookingsPagination').innerHTML = pag;
+}
+
+function goPage(p) { currentPage = p; renderBookingsTable(filteredBookings); }
+
+// ── ADMIN: VIEW USER PROFILE ──────────────────────────────────
+function viewUserProfile(email) {
+  const modal = document.getElementById('modalViewUser');
+  document.getElementById('vuLoading').style.display = '';
+  document.getElementById('vuContent').style.display = 'none';
+  modal.classList.remove('hidden');
+  api('getUserProfile', { email: email }, function(r) {
+    document.getElementById('vuLoading').style.display = 'none';
+    if (!r || !r.success) { document.getElementById('vuContent').innerHTML = '<p style="color:#dc2626">User not found.</p>'; document.getElementById('vuContent').style.display = ''; return; }
+    const u = r.user;
+    const s = u.stats || {};
+    const joined = u.createdAt ? u.createdAt.toString().slice(0,10) : '—';
+    document.getElementById('vuContent').innerHTML = `
+      <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px">
+        ${avatarHtml(u.fullName, 'avatar-lg', u.avatar)}
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#1f2937">${escHtml(u.fullName)}</div>
+          <div style="font-size:13px;color:#6b7280">${escHtml(u.email)}</div>
+          <div style="margin-top:4px">${u.status === 'Active' ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div><div class="text-sm text-muted">Mobile</div><div class="fw-bold">${escHtml(u.mobile)||'—'}</div></div>
+        <div><div class="text-sm text-muted">Department</div><div class="fw-bold">${escHtml(u.department)||'—'}</div></div>
+        <div><div class="text-sm text-muted">Position</div><div class="fw-bold">${escHtml(u.position)||'—'}</div></div>
+        <div><div class="text-sm text-muted">Member Since</div><div class="fw-bold">${joined}</div></div>
+      </div>
+      <div style="background:#f9fafb;border-radius:10px;padding:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+        <div><div style="font-size:22px;font-weight:800;color:#1f2937">${s.total||0}</div><div class="text-sm text-muted">Total</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#16a34a">${s.confirmed||0}</div><div class="text-sm text-muted">Confirmed</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#d97706">${s.pending||0}</div><div class="text-sm text-muted">Pending</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#dc2626">${s.cancelled||0}</div><div class="text-sm text-muted">Cancelled</div></div>
+      </div>`;
+    document.getElementById('vuContent').style.display = '';
+  });
+}
+
+function quickApprove(bookingId) {
+  if (!confirm('Approve booking ' + bookingId + '? This will send a confirmation email to the client.')) return;
+  api('updateBookingStatus', { bookingId: bookingId, status: 'Confirmed', adminUsername: App.admin.username }, function(r) {
+    if (r && r.success) { toast('Booking approved! Confirmation email sent.', 'success'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
+    else toast((r && r.message) || 'Failed.', 'error');
+  });
+}
+
+function quickReject(bookingId) {
+  if (!confirm('Reject and cancel booking ' + bookingId + '?')) return;
+  api('updateBookingStatus', { bookingId: bookingId, status: 'Cancelled', adminUsername: App.admin.username }, function(r) {
+    if (r && r.success) { toast('Booking rejected.', 'info'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
+    else toast((r && r.message) || 'Failed.', 'error');
+  });
+}
+
+function openStatusModal(bookingId, status, name, date, timeRange) {
+  document.getElementById('statusBookingId').value = bookingId;
+  document.getElementById('statusBookingDisplay').textContent = bookingId;
+  document.getElementById('statusBookingClient').textContent  = name || '';
+  document.getElementById('statusBookingDT').textContent      = (date || '') + (timeRange ? '  ·  ' + timeRange : '');
+  document.getElementById('statusSelect').value = status;
+  updateStatusUI();
+  openModal('modalStatus');
+}
+
+function updateStatusUI() {
+  const val  = document.getElementById('statusSelect').value;
+  const hint = document.getElementById('statusHint');
+  const btn  = document.getElementById('btnUpdateStatus');
+  const msgs = {
+    Confirmed: { cls:'alert-success', icon:'fa-circle-check', text:'<strong>Approve:</strong> Creates a calendar event and sends a confirmation email to the client.', btnCls:'btn-success', btnTxt:'<i class="fa-solid fa-check"></i> Approve' },
+    Cancelled: { cls:'alert-error',   icon:'fa-circle-xmark', text:'<strong>Cancel/Reject:</strong> Deletes the calendar event if any.', btnCls:'btn-danger',  btnTxt:'<i class="fa-solid fa-xmark"></i> Reject / Cancel' },
+    Pending:   { cls:'alert-warn',    icon:'fa-hourglass-half', text:'Set back to Pending for review.', btnCls:'btn-warning', btnTxt:'<i class="fa-solid fa-hourglass-half"></i> Mark Pending' },
+    Completed: { cls:'alert-success', icon:'fa-check-double', text:'Mark this booking as completed.', btnCls:'btn-success',  btnTxt:'<i class="fa-solid fa-check-double"></i> Mark Completed' },
+    'No-show': { cls:'alert-error',   icon:'fa-user-slash',   text:'Mark client as no-show.', btnCls:'btn-ghost',    btnTxt:'<i class="fa-solid fa-user-slash"></i> Mark No-show' }
+  };
+  const m = msgs[val];
+  if (m) {
+    hint.className = 'alert ' + m.cls;
+    hint.innerHTML = `<i class="fa-solid ${m.icon}"></i><span>${m.text}</span>`;
+    hint.classList.remove('hidden');
+    btn.className = 'btn ' + m.btnCls;
+    btn.innerHTML = m.btnTxt;
+  } else {
+    hint.classList.add('hidden');
+    btn.className = 'btn btn-primary';
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save';
+  }
+}
+
+function doUpdateStatus() {
+  const bookingId = document.getElementById('statusBookingId').value;
+  const status    = document.getElementById('statusSelect').value;
+  api('updateBookingStatus', { bookingId: bookingId, status: status, adminUsername: App.admin.username }, function(r) {
+    if (r && r.success) { toast(r.message, status === 'Confirmed' ? 'success' : 'info'); closeModal('modalStatus'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
+    else toast((r && r.message) || 'Update failed.', 'error');
+  });
+}
+
+// Admin Calendar
+function loadAdminCalendar() {
+  api('getAdminCalendarData', { month: App.adminCalMonth, year: App.adminCalYear }, function(r) {
+    if (r && r.success) { App.adminCalData = r.data; renderAdminCalendar(); }
+  });
+}
+function changeAdminMonth(dir) {
+  App.adminCalMonth += dir;
+  if (App.adminCalMonth > 12) { App.adminCalMonth = 1; App.adminCalYear++; }
+  if (App.adminCalMonth < 1)  { App.adminCalMonth = 12; App.adminCalYear--; }
+  loadAdminCalendar();
+}
+
+function renderAdminCalendar() {
+  const grid = document.getElementById('adminCalGrid');
+  grid.innerHTML = '';
+  document.getElementById('adminCalTitle').textContent = MONTHS[App.adminCalMonth-1] + ' ' + App.adminCalYear;
+  const firstDay    = new Date(App.adminCalYear, App.adminCalMonth-1, 1).getDay();
+  const daysInMonth = new Date(App.adminCalYear, App.adminCalMonth, 0).getDate();
+  const today = todayStr();
+  for (let i = 0; i < firstDay; i++) { const e = document.createElement('div'); e.className = 'cal-day cal-empty'; grid.appendChild(e); }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds  = App.adminCalYear + '-' + String(App.adminCalMonth).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const bks = App.adminCalData[ds] || [];
+    const pending = bks.filter(function(b) { return b.status === 'Pending'; }).length;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    if (ds === today) cell.classList.add('cal-today');
+    cell.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-badges">${bks.length > 0 ? `<div class="cal-badge cal-badge-booked">${bks.length} Booked</div>` : ''}${pending > 0 ? `<div class="cal-badge" style="background:#fef3c7;color:#92400e">${pending} Pending</div>` : ''}</div>`;
+    cell.onclick = (function(dateStr, dayBks) { return function() { selectAdminDate(dateStr, dayBks); }; })(ds, bks);
+    grid.appendChild(cell);
+  }
+}
+
+function selectAdminDate(ds, bookings) {
+  document.querySelectorAll('#adminCalGrid .cal-day').forEach(function(el) { el.classList.remove('cal-selected'); });
+  const d = parseInt(ds.split('-')[2]);
+  const cells = document.querySelectorAll('#adminCalGrid .cal-day:not(.cal-empty)');
+  if (cells[d-1]) cells[d-1].classList.add('cal-selected');
+  const panel = document.getElementById('adminDayPanel');
+  const label = fmtDateLong(ds);
+  if (!bookings || bookings.length === 0) { panel.innerHTML = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div><div class="empty-state" style="padding:24px"><p>No bookings on this date.</p></div>`; return; }
+  let h = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div>`;
+  bookings.forEach(function(b) {
+    const isPending = b.status === 'Pending';
+    h += `<div class="slot-item${isPending?' slot-booked':''}" style="flex-direction:column;align-items:flex-start;gap:5px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+        <div class="slot-time">${b.timeRange}</div>${statusBadge(b.status)}
+      </div>
+      ${b.title ? `<div style="font-weight:700;font-size:13px">${b.title}</div>` : ''}
+      <div style="font-weight:600;font-size:13px;color:#374151">${b.fullName}</div>
+      <div class="text-sm text-muted">${b.email} · ${b.mobile}</div>
+      <div class="text-sm"><strong>Purpose:</strong> ${b.purpose}</div>
+      ${b.guests  ? `<div class="text-sm" style="margin-top:4px"><strong><i class="fa-solid fa-users" style="color:#6b7280;margin-right:4px"></i>Guests:</strong><br>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
+      ${b.remarks ? `<div class="text-sm text-muted" style="margin-top:4px;font-style:italic;border-left:3px solid #e5e7eb;padding-left:6px">${escHtml(b.remarks)}</div>` : ''}
+      <div class="booking-actions" style="margin-top:8px">
+        ${isPending ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${b.bookingId}');loadAdminCalendar()"><i class="fa-solid fa-check"></i> Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="quickReject('${b.bookingId}');loadAdminCalendar()"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${b.bookingId}','${b.status}','${b.fullName}','${label}','${b.timeRange}')"><i class="fa-solid fa-pen-to-square"></i> Update</button>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = h;
+}
+
+// Activity Logs
+function loadActivityLogs() {
+  api('getActivityLogs', {}, function(r) {
+    const tbody = document.getElementById('logsTableBody');
+    const logs  = (r && r.success) ? r.logs : [];
+    if (logs.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">No logs yet.</td></tr>'; return; }
+    const colors = { ADMIN_LOGIN:'#166534', ADMIN_LOGIN_FAILED:'#991b1b', USER_REGISTERED:'#1e40af', USER_LOGIN:'#1e40af', BOOKING_CREATED:'#d97706', BOOKING_CANCELLED:'#991b1b', BOOKING_RESCHEDULED:'#92400e', BOOKING_STATUS_UPDATED:'#6b21a8' };
+    tbody.innerHTML = logs.map(function(l) {
+      return `<tr><td class="text-sm text-muted">${fmtTs(l.timestamp)}</td><td class="text-sm">${l.actor}</td><td><span style="color:${colors[l.action]||'#1f2937'};font-size:11px;font-weight:700">${l.action}</span></td><td class="text-sm text-muted">${l.details}</td></tr>`;
+    }).join('');
+  });
+}
+
+// Btn loading helper
+function setBtnLoading(id, loading) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) { btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<div class="spinner spinner-sm" style="margin:0 auto"></div>'; }
+  else if (btn.dataset.orig) btn.innerHTML = btn.dataset.orig;
+}
+
+// ── AVATAR HELPERS ────────────────────────────────────────────
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return (parts.length >= 2 ? parts[0][0] + parts[parts.length-1][0] : name.slice(0,2)).toUpperCase();
+}
+
+const AVATAR_COLORS = ['#800000','#1e40af','#166534','#92400e','#6b21a8','#0f766e','#b45309','#be185d','#1d4ed8'];
+function getAvatarColor(name) {
+  if (!name) return '#800000';
+  let n = 0; for (let i = 0; i < name.length; i++) n += name.charCodeAt(i);
+  return AVATAR_COLORS[n % AVATAR_COLORS.length];
+}
+
+function avatarHtml(name, extraClass, avatarUrl) {
+  const bg = getAvatarColor(name);
+  if (avatarUrl && avatarUrl.length > 10) {
+    return `<div class="avatar ${extraClass||''}" style="background:${bg};padding:0;overflow:hidden"><img src="${avatarUrl}" alt="${getInitials(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+  }
+  return `<div class="avatar ${extraClass||''}" style="background:${bg}">${getInitials(name)}</div>`;
+}
+
+// ── PROFILE PICTURE UPLOAD ────────────────────────────────────
+App.pendingAvatar = null; // base64 string pending save
+
+function resizeImageToBase64(file, cb) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      // crop to square from center
+      const sz = Math.min(img.width, img.height);
+      const sx = (img.width - sz) / 2, sy = (img.height - sz) / 2;
+      ctx.drawImage(img, sx, sy, sz, sz, 0, 0, 128, 128);
+      cb(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function triggerAvatarUpload() {
+  document.getElementById('profilePicInput').click();
+}
+
+function onProfilePicChange(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+  resizeImageToBase64(file, function(base64) {
+    App.pendingAvatar = base64;
+    // Preview in modal
+    const container = document.getElementById('profileAvatarWrap');
+    const isAdmin = !!App.admin;
+    const name = isAdmin ? (App.admin.displayName || App.admin.username) : App.user.fullName;
+    container.innerHTML = avatarHtml(name, 'avatar-lg', base64) +
+      `<button type="button" class="btn btn-sm btn-outline" onclick="triggerAvatarUpload()" style="margin-top:6px;font-size:11px">Change Photo</button>`;
+  });
+}
+
+// ── PROFILE ───────────────────────────────────────────────────
+function openProfileModal() {
+  const modal = document.getElementById('modalProfile');
+  const isAdmin = !!App.admin;
+  const name     = isAdmin ? (App.admin.displayName || App.admin.username) : App.user.fullName;
+  const email    = isAdmin ? App.admin.username : App.user.email;
+  const mobile   = isAdmin ? '' : (App.user.mobile || '');
+  const dept     = isAdmin ? '' : (App.user.department || '');
+  const pos      = isAdmin ? (App.admin.position || '') : (App.user.position || '');
+  const currentAvatar = isAdmin ? (App.admin.avatar || '') : (App.user.avatar || '');
+
+  App.pendingAvatar = null; // reset on open
+  const avatarWrap = document.getElementById('profileAvatarWrap');
+  avatarWrap.innerHTML = avatarHtml(name, 'avatar-lg', currentAvatar) +
+    `<button type="button" onclick="triggerAvatarUpload()" style="margin-top:6px;font-size:11px;padding:3px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;color:#374151">Change Photo</button>`;
+
+  document.getElementById('profileName').textContent   = name;
+  document.getElementById('profileEmail').textContent  = email;
+  document.getElementById('profileRole').textContent   = isAdmin ? 'Administrator' : 'Employee';
+  document.getElementById('pfFullName').value   = name;
+  document.getElementById('pfMobile').value     = mobile;
+  document.getElementById('pfDept').value       = dept;
+  document.getElementById('pfPosition').value   = pos;
+
+  const mobileRow = document.getElementById('pfMobileRow');
+  const deptRow   = document.getElementById('pfDeptRow');
+  const pwSection = document.getElementById('pfPwSection');
+  if (mobileRow) mobileRow.style.display = isAdmin ? 'none' : '';
+  if (deptRow)   deptRow.style.display   = isAdmin ? 'none' : '';
+  if (pwSection) pwSection.style.display = isAdmin ? 'none' : '';
+  // Clear password fields
+  ['pfOldPw','pfNewPw','pfConfirmPw'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+
+  modal.classList.remove('hidden');
+}
+
+function saveProfile() {
+  const fullName = document.getElementById('pfFullName').value.trim();
+  const mobile   = document.getElementById('pfMobile').value.trim();
+  const dept     = document.getElementById('pfDept').value.trim();
+  const pos      = document.getElementById('pfPosition').value.trim();
+  if (!fullName) { showAlert('profileAlert','Name is required.','error'); return; }
+
+  setBtnLoading('btnSaveProfile', true);
+  if (App.admin) {
+    const payload = { username: App.admin.username, displayName: fullName, position: pos };
+    if (App.pendingAvatar) payload.avatar = App.pendingAvatar;
+    api('updateAdminProfile', payload, function(r) {
+      setBtnLoading('btnSaveProfile', false);
+      if (r && r.success) {
+        App.admin.displayName = r.displayName;
+        App.admin.position    = r.position;
+        if (r.avatar) App.admin.avatar = r.avatar;
+        else if (App.pendingAvatar) App.admin.avatar = App.pendingAvatar;
+        App.pendingAvatar = null;
+        showAlert('profileAlert', 'Profile updated!', 'success');
+        renderNav();
+      } else { showAlert('profileAlert', (r && r.message) || 'Error.', 'error'); }
+    });
+  } else {
+    const payload = { userId: App.user.userId, fullName: fullName, mobile: mobile, department: dept, position: pos };
+    if (App.pendingAvatar) payload.avatar = App.pendingAvatar;
+    api('updateUserProfile', payload, function(r) {
+      setBtnLoading('btnSaveProfile', false);
+      if (r && r.success) {
+        App.user = Object.assign(App.user, r.user);
+        if (App.pendingAvatar && !r.user.avatar) App.user.avatar = App.pendingAvatar;
+        App.pendingAvatar = null;
+        showAlert('profileAlert', 'Profile updated!', 'success');
+        renderNav();
+      } else { showAlert('profileAlert', (r && r.message) || 'Error.', 'error'); }
+    });
+  }
+}
+
+// ── PASSWORD EYE TOGGLE ───────────────────────────────────────
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  const show = el.type === 'password';
+  el.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+}
+
+// ── CHANGE PASSWORD ───────────────────────────────────────────
+function doChangePassword() {
+  const oldPw    = document.getElementById('pfOldPw').value;
+  const newPw    = document.getElementById('pfNewPw').value;
+  const confirmPw = document.getElementById('pfConfirmPw').value;
+  if (!oldPw || !newPw || !confirmPw) { showAlert('profileAlert','Fill in all password fields.','error'); return; }
+  if (newPw.length < 6) { showAlert('profileAlert','New password must be at least 6 characters.','error'); return; }
+  if (newPw !== confirmPw) { showAlert('profileAlert','New passwords do not match.','error'); return; }
+  setBtnLoading('btnChangePw', true);
+  api('changePassword', { userId: App.user.userId, oldPassword: oldPw, newPassword: newPw }, function(r) {
+    setBtnLoading('btnChangePw', false);
+    if (r && r.success) {
+      showAlert('profileAlert','Password changed successfully!','success');
+      document.getElementById('pfOldPw').value = '';
+      document.getElementById('pfNewPw').value = '';
+      document.getElementById('pfConfirmPw').value = '';
+    } else { showAlert('profileAlert',(r && r.message)||'Error changing password.','error'); }
+  });
+}
+
+// ── AUTO-RESIZE TEXTAREAS ─────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight) + 'px';
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('textarea.auto-resize').forEach(function(el) {
+    el.addEventListener('input', function() { autoResize(this); });
+  });
+});
+</script>
+
+<!-- ── MODAL: VIEW USER (Admin) ──────────────────────────── -->
+<div class="modal-overlay hidden" id="modalViewUser">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-user"></i> User Profile</h3>
+      <button class="modal-close" onclick="closeModal('modalViewUser')">&times;</button>
+    </div>
+    <div style="padding:28px">
+      <div id="vuLoading" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></div>
+      <div id="vuContent" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: PROFILE ─────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalProfile">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-user-circle"></i> My Profile</h3>
+      <button class="modal-close" onclick="closeModal('modalProfile')">&times;</button>
+    </div>
+    <div style="padding:28px">
+      <!-- Avatar + info -->
+      <input type="file" id="profilePicInput" accept="image/*" style="display:none" onchange="onProfilePicChange(this)">
+      <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px">
+        <div id="profileAvatarWrap" style="display:flex;flex-direction:column;align-items:center;gap:4px"></div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#1f2937" id="profileName"></div>
+          <div style="font-size:13px;color:#6b7280" id="profileEmail"></div>
+          <div style="font-size:12px;font-weight:600;color:#800000;margin-top:2px" id="profileRole"></div>
+        </div>
+      </div>
+      <div id="profileAlert"></div>
+      <!-- Edit form -->
+      <div class="form-group">
+        <label>Display Name <span>*</span></label>
+        <input class="form-control" type="text" id="pfFullName" placeholder="Your full name">
+      </div>
+      <div class="form-group" id="pfMobileRow">
+        <label>Mobile</label>
+        <input class="form-control" type="tel" id="pfMobile" placeholder="09XXXXXXXXX">
+      </div>
+      <div class="form-group" id="pfDeptRow">
+        <label>Department</label>
+        <input class="form-control" type="text" id="pfDept" placeholder="e.g. Sales, Operations, HR...">
+      </div>
+      <div class="form-group">
+        <label>Position / Role</label>
+        <input class="form-control" type="text" id="pfPosition" placeholder="e.g. Sales Manager, Admin Officer...">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveProfile()" id="btnSaveProfile">
+        <i class="fa-solid fa-floppy-disk"></i> Save Profile
+      </button>
+      <!-- Change Password (users only) -->
+      <div id="pfPwSection">
+        <hr class="divider" style="margin:20px 0">
+        <div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:12px"><i class="fa-solid fa-lock" style="margin-right:6px;color:#800000"></i>Change Password</div>
+        <div class="form-group">
+          <label>Current Password</label>
+          <div class="pw-wrap"><input class="form-control" type="password" id="pfOldPw" placeholder="Current password"><button type="button" class="pw-eye" onclick="togglePw('pfOldPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <div class="pw-wrap"><input class="form-control" type="password" id="pfNewPw" placeholder="Min. 6 characters"><button type="button" class="pw-eye" onclick="togglePw('pfNewPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <div class="pw-wrap"><input class="form-control" type="password" id="pfConfirmPw" placeholder="Re-enter new password"><button type="button" class="pw-eye" onclick="togglePw('pfConfirmPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+        </div>
+        <button class="btn btn-ghost btn-full" onclick="doChangePassword()" id="btnChangePw">
+          <i class="fa-solid fa-key"></i> Change Password
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
