@@ -392,7 +392,6 @@ tr.row-pending:hover td { background: #fef9c3; }
         <div id="registerAlert"></div>
         <div class="form-group"><label>Full Name <span>*</span></label><input class="form-control" type="text" id="regName" placeholder="Juan Dela Cruz"></div>
         <div class="form-group"><label>Company Email <span>*</span></label><input class="form-control" type="email" id="regEmail" placeholder="yourname@rameshtrading.com.ph"><p class="form-hint">This will be your login email / username.</p></div>
-        <div class="form-group"><label>Mobile Number <span>*</span></label><input class="form-control" type="tel" id="regMobile" placeholder="09XXXXXXXXX"></div>
         <div class="form-row">
           <div class="form-group"><label>Password <span>*</span></label><div class="pw-wrap"><input class="form-control" type="password" id="regPassword" placeholder="Min. 6 characters"><button type="button" class="pw-eye" onclick="togglePw('regPassword',this)"><i class="fa-solid fa-eye"></i></button></div></div>
           <div class="form-group"><label>Confirm Password <span>*</span></label><div class="pw-wrap"><input class="form-control" type="password" id="regConfirm" placeholder="Re-enter password"><button type="button" class="pw-eye" onclick="togglePw('regConfirm',this)"><i class="fa-solid fa-eye"></i></button></div></div>
@@ -438,7 +437,6 @@ tr.row-pending:hover td { background: #fef9c3; }
           <div class="form-group"><label>Full Name <span>*</span></label><input class="form-control" type="text" id="bkName" placeholder="Your full name"></div>
           <div class="form-group"><label>Email <span>*</span></label><input class="form-control" type="email" id="bkEmail" placeholder="your@email.com"></div>
         </div>
-        <div class="form-group"><label>Mobile Number <span>*</span></label><input class="form-control" type="tel" id="bkMobile" placeholder="09XXXXXXXXX"></div>
         <div class="form-group"><label>Visit Date <span>*</span></label><input class="form-control" type="date" id="bkDate" onchange="loadBookingSlots()"></div>
         <div class="form-row">
           <div class="form-group">
@@ -452,15 +450,32 @@ tr.row-pending:hover td { background: #fef9c3; }
         </div>
         <div id="bookSlotInfo"></div>
         <div class="form-group"><label>Title <span>*</span></label><input class="form-control" type="text" id="bkTitle" placeholder="e.g. Product Demo, Client Meeting, Showroom Visit..."></div>
-        <div class="form-group"><label>Purpose of Visit <span>*</span></label><input class="form-control" type="text" id="bkPurpose" placeholder="Brief description of what you need..."></div>
         <div class="form-group">
-          <label>Guest Names <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
+          <label>Purpose of Visit <span>*</span></label>
+          <textarea class="form-control auto-resize" id="bkPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Describe the purpose of your visit or meeting agenda..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Client Name <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
+          <input class="form-control auto-resize-input" type="text" id="bkClientName" placeholder="Name of client or company visiting">
+        </div>
+        <div class="form-group">
+          <label>Guest Names <span>*</span></label>
           <textarea class="form-control auto-resize" id="bkGuests" rows="3" style="min-height:80px;resize:none;overflow:hidden" placeholder="Enter guest names, one per line:&#10;Juan dela Cruz&#10;Maria Santos"></textarea>
-          <p class="form-hint">One name per line. These will appear in your calendar invite.</p>
+          <p class="form-hint">Required. One name per line. These will appear in your calendar invite.</p>
         </div>
         <div class="form-group">
           <label>Remarks <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
-          <textarea class="form-control" id="bkRemarks" placeholder="Additional notes or special requests.&#10;&#10;Press Enter to add a new line."></textarea>
+          <textarea class="form-control auto-resize" id="bkRemarks" rows="3" style="min-height:80px;resize:none;overflow:hidden" placeholder="Additional notes or special requests.&#10;&#10;Press Enter to add a new line."></textarea>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="bkMealRequest" onchange="toggleMealRemarks()" style="width:18px;height:18px;cursor:pointer">
+            <span>Meal Request</span>
+          </label>
+        </div>
+        <div class="form-group" id="bkMealRemarksRow" style="display:none">
+          <label>Meal Remarks <span>*</span></label>
+          <textarea class="form-control auto-resize" id="bkMealRemarks" rows="2" style="min-height:60px;resize:none;overflow:hidden" placeholder="Specify meal type, dietary requirements, number of pax..."></textarea>
         </div>
         <div class="alert alert-warn" style="margin-bottom:16px"><i class="fa-solid fa-clock"></i><span>Your booking will be <strong>Pending</strong> until approved by the admin. You'll receive an email once confirmed.</span></div>
         <button class="btn btn-primary btn-full" onclick="doCreateBooking()" id="btnBook"><i class="fa-solid fa-paper-plane"></i> Submit Booking Request</button>
@@ -609,7 +624,7 @@ tr.row-pending:hover td { background: #fef9c3; }
           <label class="form-label">Full Name</label>
           <input class="form-control" id="pfFullName" type="text" placeholder="Full name">
         </div>
-        <div id="pfMobileRow">
+        <div id="pfMobileRow" style="display:none">
           <label class="form-label">Mobile</label>
           <input class="form-control" id="pfMobile" type="text" placeholder="Mobile number">
         </div>
@@ -1091,15 +1106,14 @@ function doAdminLogin() {
 function doRegister() {
   const name    = document.getElementById('regName').value.trim();
   const email   = document.getElementById('regEmail').value.trim();
-  const mobile  = document.getElementById('regMobile').value.trim();
   const pwd     = document.getElementById('regPassword').value;
   const confirm = document.getElementById('regConfirm').value;
-  if (!name || !email || !mobile || !pwd) { showAlert('registerAlert', 'All fields are required.', 'error'); return; }
+  if (!name || !email || !pwd) { showAlert('registerAlert', 'All fields are required.', 'error'); return; }
   if (pwd !== confirm) { showAlert('registerAlert', 'Passwords do not match.', 'error'); return; }
   if (pwd.length < 6)  { showAlert('registerAlert', 'Password must be at least 6 characters.', 'error'); return; }
   if (!email.toLowerCase().endsWith('@rameshtrading.com.ph')) { showAlert('registerAlert', 'Only <strong>@rameshtrading.com.ph</strong> email addresses can register.', 'error'); return; }
   setBtnLoading('btnRegister', true);
-  api('registerUser', { fullName: name, email: email, mobile: mobile, password: pwd }, function(r) {
+  api('registerUser', { fullName: name, email: email, password: pwd }, function(r) {
     setBtnLoading('btnRegister', false);
     if (r && r.success) { showAlert('registerAlert', '<i class="fa-solid fa-circle-check"></i> ' + r.message, 'success'); toast('Account created!', 'success'); setTimeout(function() { showView('login'); }, 2000); }
     else showAlert('registerAlert', (r && r.message) || 'Registration failed.', 'error');
@@ -1113,7 +1127,6 @@ function prefillBookingForm() {
   if (!App.user) return;
   document.getElementById('bkName').value   = App.user.fullName;
   document.getElementById('bkEmail').value  = App.user.email;
-  document.getElementById('bkMobile').value = App.user.mobile;
 }
 
 function resetBookingForm() {
@@ -1130,11 +1143,21 @@ function resetBookingForm() {
   document.getElementById('bkEndTime').disabled = true;
   document.getElementById('bkTitle').value = '';
   document.getElementById('bkPurpose').value = '';
+  document.getElementById('bkClientName').value = '';
   document.getElementById('bkRemarks').value = '';
   document.getElementById('bkGuests').value  = '';
+  document.getElementById('bkMealRequest').checked = false;
+  document.getElementById('bkMealRemarks').value = '';
+  document.getElementById('bkMealRemarksRow').style.display = 'none';
   document.getElementById('bookSlotInfo').innerHTML = '';
   showAlert('bookAlert','','');
   App.bookedBlocks = [];
+}
+
+function toggleMealRemarks() {
+  const checked = document.getElementById('bkMealRequest').checked;
+  document.getElementById('bkMealRemarksRow').style.display = checked ? '' : 'none';
+  if (!checked) document.getElementById('bkMealRemarks').value = '';
 }
 
 function loadBookingSlots() {
@@ -1210,22 +1233,28 @@ function onStartTimeChange() {
 }
 
 function doCreateBooking() {
-  const name      = document.getElementById('bkName').value.trim();
-  const email     = document.getElementById('bkEmail').value.trim();
-  const mobile    = document.getElementById('bkMobile').value.trim();
-  const date      = document.getElementById('bkDate').value;
-  const startTime = document.getElementById('bkStartTime').value;
-  const endTime   = document.getElementById('bkEndTime').value;
-  const title     = document.getElementById('bkTitle').value.trim();
-  const purpose   = document.getElementById('bkPurpose').value.trim();
-  const remarks   = document.getElementById('bkRemarks').value.trim();
-  const guests    = document.getElementById('bkGuests').value.trim();
+  const name        = document.getElementById('bkName').value.trim();
+  const email       = document.getElementById('bkEmail').value.trim();
+  const date        = document.getElementById('bkDate').value;
+  const startTime   = document.getElementById('bkStartTime').value;
+  const endTime     = document.getElementById('bkEndTime').value;
+  const title       = document.getElementById('bkTitle').value.trim();
+  const purpose     = document.getElementById('bkPurpose').value.trim();
+  const clientName  = document.getElementById('bkClientName').value.trim();
+  const remarks     = document.getElementById('bkRemarks').value.trim();
+  const guests      = document.getElementById('bkGuests').value.trim();
+  const mealChecked = document.getElementById('bkMealRequest').checked;
+  const mealRemarks = mealChecked ? document.getElementById('bkMealRemarks').value.trim() : '';
+  const mealRequest = mealChecked ? ('Yes' + (mealRemarks ? ': ' + mealRemarks : '')) : '';
 
-  if (!name || !email || !mobile || !date || !startTime || !endTime || !title || !purpose) {
+  if (!name || !email || !date || !startTime || !endTime || !title || !purpose || !guests) {
     showAlert('bookAlert', 'Please fill in all required fields, including start and end time.', 'error'); return;
   }
+  if (mealChecked && !mealRemarks) {
+    showAlert('bookAlert', 'Please specify meal remarks when Meal Request is checked.', 'error'); return;
+  }
   setBtnLoading('btnBook', true);
-  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, mobile: mobile, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests }, function(r) {
+  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest }, function(r) {
     setBtnLoading('btnBook', false);
     if (r && r.success) {
       toast('Booking submitted! Awaiting admin approval.', 'warn');
@@ -1433,7 +1462,7 @@ function loadAdminToday() {
           <div class="slot-time">${b.timeRange}</div>${statusBadge(b.status)}
         </div>
         ${b.title ? `<div style="font-weight:700;font-size:13px">${b.title}</div>` : ''}
-        <div style="font-size:13px;color:#4b5563">${b.fullName} · ${b.email} · ${b.mobile}</div>
+        <div style="font-size:13px;color:#4b5563">${b.fullName} · ${b.email}</div>
         <div class="text-sm text-muted">${b.purpose}</div>
         ${b.remarks ? `<div class="text-sm text-muted" style="font-style:italic">${escHtml(b.remarks)}</div>` : ''}
         <div class="booking-actions" style="margin-top:4px">
@@ -1465,7 +1494,7 @@ function filterBookings() {
   const dt = document.getElementById('fDate').value;
   const st = document.getElementById('fStatus').value;
   filteredBookings = App.allBookings.filter(function(b) {
-    const mQ = !q || [b.fullName,b.email,b.mobile,b.bookingId,b.title||'',b.purpose,b.remarks||''].some(function(f) { return f.toLowerCase().includes(q); });
+    const mQ = !q || [b.fullName,b.email,b.bookingId,b.title||'',b.purpose,b.remarks||''].some(function(f) { return f.toLowerCase().includes(q); });
     return mQ && (!dt || b.bookingDate === dt) && (!st || b.status === st);
   });
   currentPage = 1;
@@ -1495,7 +1524,7 @@ function renderBookingsTable(bookings) {
       <td class="fw-bold" style="white-space:nowrap">${fmtDate(b.bookingDate)}</td>
       <td class="text-sm" style="white-space:nowrap">${b.timeRange}</td>
       <td class="fw-bold">${b.title || '—'}</td>
-      <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button><div class="text-sm text-muted">${b.mobile}</div></div></div></td>
+      <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button></div></div></td>
       <td class="text-sm text-muted">${b.email}</td>
       <td class="text-sm" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${escHtml(b.purpose)}</td>
       <td class="text-sm" style="max-width:130px">${b.guests ? escHtml(b.guests).replace(/\n/g,'<br>') : '—'}</td>
@@ -1542,7 +1571,7 @@ function viewUserProfile(email) {
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div><div class="text-sm text-muted">Mobile</div><div class="fw-bold">${escHtml(u.mobile)||'—'}</div></div>
+        <div><div class="text-sm text-muted">Email</div><div class="fw-bold">${escHtml(u.email)||'—'}</div></div>
         <div><div class="text-sm text-muted">Department</div><div class="fw-bold">${escHtml(u.department)||'—'}</div></div>
         <div><div class="text-sm text-muted">Position</div><div class="fw-bold">${escHtml(u.position)||'—'}</div></div>
         <div><div class="text-sm text-muted">Member Since</div><div class="fw-bold">${joined}</div></div>
@@ -1671,7 +1700,7 @@ function selectAdminDate(ds, bookings) {
         ${avatarHtml(b.fullName,'avatar-xs',b.avatar)}
         <div>
           <div style="font-weight:600;font-size:13px;color:#374151">${b.fullName}</div>
-          <div class="text-sm text-muted">${b.email} · ${b.mobile}</div>
+          <div class="text-sm text-muted">${b.email}</div>
         </div>
       </div>
       <div class="text-sm"><strong>Purpose:</strong> ${b.purpose}</div>
@@ -1778,7 +1807,6 @@ function openProfileModal() {
   const isAdmin = !!App.admin;
   const name     = isAdmin ? (App.admin.displayName || App.admin.username) : App.user.fullName;
   const email    = isAdmin ? App.admin.username : App.user.email;
-  const mobile   = isAdmin ? '' : (App.user.mobile || '');
   const dept     = isAdmin ? '' : (App.user.department || '');
   const pos      = isAdmin ? (App.admin.position || '') : (App.user.position || '');
   const currentAvatar = isAdmin ? (App.admin.avatar || '') : (App.user.avatar || '');
@@ -1792,14 +1820,11 @@ function openProfileModal() {
   document.getElementById('profileEmail').textContent  = email;
   document.getElementById('profileRole').textContent   = isAdmin ? 'Administrator' : 'Employee';
   document.getElementById('pfFullName').value   = name;
-  document.getElementById('pfMobile').value     = mobile;
   document.getElementById('pfDept').value       = dept;
   document.getElementById('pfPosition').value   = pos;
 
-  const mobileRow = document.getElementById('pfMobileRow');
   const deptRow   = document.getElementById('pfDeptRow');
   const pwSection = document.getElementById('pfPwSection');
-  if (mobileRow) mobileRow.style.display = isAdmin ? 'none' : '';
   if (deptRow)   deptRow.style.display   = isAdmin ? 'none' : '';
   if (pwSection) pwSection.style.display = isAdmin ? 'none' : '';
   // Clear password fields
@@ -1810,7 +1835,6 @@ function openProfileModal() {
 
 function saveProfile() {
   const fullName = document.getElementById('pfFullName').value.trim();
-  const mobile   = document.getElementById('pfMobile').value.trim();
   const dept     = document.getElementById('pfDept').value.trim();
   const pos      = document.getElementById('pfPosition').value.trim();
   if (!fullName) { showAlert('profileAlert','Name is required.','error'); return; }
@@ -1832,7 +1856,7 @@ function saveProfile() {
       } else { showAlert('profileAlert', (r && r.message) || 'Error.', 'error'); }
     });
   } else {
-    const payload = { userId: App.user.userId, fullName: fullName, mobile: mobile, department: dept, position: pos };
+    const payload = { userId: App.user.userId, fullName: fullName, department: dept, position: pos };
     if (App.pendingAvatar) payload.avatar = App.pendingAvatar;
     api('updateUserProfile', payload, function(r) {
       setBtnLoading('btnSaveProfile', false);
@@ -1965,7 +1989,7 @@ function lookupAcUser() {
   const info  = document.getElementById('acUserInfo');
   if (found) {
     info.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>'
-      + '<strong>'+escHtml(found.fullName)+'</strong> · '+escHtml(found.mobile);
+      + '<strong>'+escHtml(found.fullName)+'</strong> · '+escHtml(found.email);
     info.style.display = '';
     showAlert('acAlert','','');
   } else {
