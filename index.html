@@ -63,6 +63,13 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 .avatar-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.9); font-size: 13px; border-radius: 6px; padding: 4px 8px; transition: background .15s; }
 .avatar-btn:hover { background: rgba(255,255,255,.15); }
 .avatar-btn-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ── Room Switcher ──────────────────────────────────────────── */
+.room-switcher { display:flex; background:rgba(255,255,255,.15); border-radius:20px; padding:3px; gap:2px; }
+.room-btn { background:none; border:none; cursor:pointer; padding:5px 14px; border-radius:16px; font-size:12px; font-weight:600; color:rgba(255,255,255,.75); transition:all .15s; white-space:nowrap; }
+.room-btn.active { background:rgba(255,255,255,.25); color:#fff; }
+.room-btn:hover:not(.active) { background:rgba(255,255,255,.1); color:#fff; }
+.conf-banner { background:#1e40af; color:#fff; text-align:center; padding:7px; font-size:13px; font-weight:600; display:none; }
+.conf-banner.show { display:block; }
 /* ── Inline link button ─────────────────────────────────────── */
 .btn-link-plain { background: none; border: none; padding: 0; cursor: pointer; color: #1f2937; font-weight: 700; font-size: inherit; text-align: left; text-decoration: underline dotted; text-underline-offset: 2px; }
 .btn-link-plain:hover { color: var(--maroon); }
@@ -291,11 +298,14 @@ tr.row-pending:hover td { background: #fef9c3; }
   <div class="header-inner">
     <div class="logo" onclick="showView('public')">
       <div class="logo-icon">RTC</div>
-      <div class="logo-text"><b>RTC Showroom</b><span>Booking System</span></div>
+      <div class="logo-text"><b id="logoRoomName">RTC Showroom</b><span>Booking System</span></div>
     </div>
     <nav class="header-nav" id="headerNav"></nav>
   </div>
 </header>
+<div class="conf-banner" id="confBanner">
+  🏛️ You are viewing the <strong>Conference Room</strong> — all bookings, calendars, and approvals below are for the Conference Room.
+</div>
 
 <!-- ════════════════════════════════════════════════════════════
      VIEW: PUBLIC DASHBOARD
@@ -419,7 +429,7 @@ tr.row-pending:hover td { background: #fef9c3; }
   <div class="page" style="max-width:680px;margin:0 auto">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
       <button class="btn btn-ghost btn-sm" onclick="showView('user')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-      <div><div class="page-title">Book Appointment</div><div class="page-subtitle">Schedule a showroom visit — subject to admin approval</div></div>
+      <div><div class="page-title" id="bookPageTitle">Book Appointment</div><div class="page-subtitle" id="bookPageSubtitle">Schedule a showroom visit — subject to admin approval</div></div>
     </div>
     <div class="card">
       <div class="card-body">
@@ -573,6 +583,79 @@ tr.row-pending:hover td { background: #fef9c3; }
   </div>
 </div>
 
+<!-- Hidden file input for avatar upload -->
+<input type="file" id="profilePicInput" accept="image/*" style="display:none" onchange="onProfilePicChange(this)">
+
+<!-- ── MODAL: PROFILE ──────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalProfile">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><h3><i class="fa-solid fa-user-circle"></i> My Profile</h3><button class="modal-close" onclick="closeModal('modalProfile')">&times;</button></div>
+    <div class="modal-body" style="padding:24px">
+      <div id="profileAlert"></div>
+      <!-- Avatar -->
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px">
+        <div id="profileAvatarWrap" style="display:flex;flex-direction:column;align-items:center;gap:6px"></div>
+      </div>
+      <!-- Info -->
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:18px;font-weight:700" id="profileName"></div>
+        <div style="font-size:13px;color:#6b7280" id="profileEmail"></div>
+        <div style="font-size:12px;color:#9ca3af;margin-top:2px" id="profileRole"></div>
+      </div>
+      <hr style="margin-bottom:16px">
+      <!-- Edit fields -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label class="form-label">Full Name</label>
+          <input class="form-control" id="pfFullName" type="text" placeholder="Full name">
+        </div>
+        <div id="pfMobileRow">
+          <label class="form-label">Mobile</label>
+          <input class="form-control" id="pfMobile" type="text" placeholder="Mobile number">
+        </div>
+        <div id="pfDeptRow">
+          <label class="form-label">Department</label>
+          <input class="form-control" id="pfDept" type="text" placeholder="Department">
+        </div>
+        <div>
+          <label class="form-label">Position</label>
+          <input class="form-control" id="pfPosition" type="text" placeholder="Position / Job title">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveProfile()" id="btnSaveProfile" style="margin-top:16px"><i class="fa-solid fa-floppy-disk"></i> Save Profile</button>
+      <!-- Change Password (users only) -->
+      <div id="pfPwSection" style="margin-top:24px">
+        <hr style="margin-bottom:16px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#374151"><i class="fa-solid fa-lock" style="margin-right:6px"></i>Change Password</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label class="form-label">Current Password</label>
+            <div style="position:relative">
+              <input class="form-control" id="pfOldPw" type="password" placeholder="Current password" style="padding-right:40px">
+              <button type="button" onclick="togglePw('pfOldPw',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">New Password</label>
+            <div style="position:relative">
+              <input class="form-control" id="pfNewPw" type="password" placeholder="New password (min 6 chars)" style="padding-right:40px">
+              <button type="button" onclick="togglePw('pfNewPw',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Confirm New Password</label>
+            <div style="position:relative">
+              <input class="form-control" id="pfConfirmPw" type="password" placeholder="Confirm new password" style="padding-right:40px">
+              <button type="button" onclick="togglePw('pfConfirmPw',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-full" onclick="doChangePassword()" style="margin-top:12px"><i class="fa-solid fa-key"></i> Change Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── MODAL: RESCHEDULE ───────────────────────────────────── -->
 <div class="modal-overlay hidden" id="modalReschedule">
   <div class="modal-box">
@@ -679,6 +762,7 @@ function buildEndMins(startMin, bookedBlocks, closeMin, slotMin) {
 const App = {
   user:  null,
   admin: null,
+  currentRoom: 'showroom',   // 'showroom' | 'conference'
   currentView: 'public',
   calMonth: new Date().getMonth() + 1,
   calYear:  new Date().getFullYear(),
@@ -768,25 +852,71 @@ function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function renderNav() {
   const nav = document.getElementById('headerNav');
   const pendingCount = App.allBookings.filter(function(b) { return b.status === 'Pending'; }).length;
+  const roomSwitcher = `<div class="room-switcher">
+    <button class="room-btn ${App.currentRoom==='showroom'?'active':''}" onclick="switchRoom('showroom')">🏢 Showroom</button>
+    <button class="room-btn ${App.currentRoom==='conference'?'active':''}" onclick="switchRoom('conference')">🏛️ Conference</button>
+  </div>`;
   let h = '';
   if (App.admin) {
     const adminName = App.admin.displayName || App.admin.username;
+    h += roomSwitcher;
     h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(adminName, '', App.admin.avatar)}<span class="avatar-btn-name">${adminName}</span></button>`;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-calendar"></i> Calendar</button>`;
     h += `<button class="nav-btn ${App.currentView==='admin'?'active':''}" onclick="showView('admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard${pendingCount > 0 ? `<span class="pending-badge">${pendingCount}</span>` : ''}</button>`;
     h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
   } else if (App.user) {
+    h += roomSwitcher;
     h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(App.user.fullName, '', App.user.avatar)}<span class="avatar-btn-name">${App.user.fullName}</span></button>`;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
     h += `<button class="nav-btn ${App.currentView==='user'?'active':''}" onclick="showView('user')"><i class="fa-solid fa-calendar-check"></i> My Bookings</button>`;
     h += `<button class="nav-btn accent" onclick="showView('book')"><i class="fa-solid fa-plus"></i> Book Now</button>`;
     h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
   } else {
+    h += roomSwitcher;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
     h += `<button class="nav-btn" onclick="showView('login')"><i class="fa-solid fa-right-to-bracket"></i> Login</button>`;
     h += `<button class="nav-btn accent" onclick="showView('register')"><i class="fa-solid fa-user-plus"></i> Register</button>`;
   }
   nav.innerHTML = h;
+}
+
+// ── Room Switcher ─────────────────────────────────────────────
+const ROOM_ACTION_MAP = {
+  'getPublicSlots':        'getConferenceSlots',
+  'getBlockedDates':       'getConferenceBlockedDates',
+  'getPublicCalendarData': 'getConferenceCalendarData',
+  'createBooking':         'createConferenceBooking',
+  'getUserBookings':       'getUserConferenceBookings',
+  'cancelBooking':         'cancelConferenceBooking',
+  'rescheduleBooking':     'rescheduleConferenceBooking',
+  'getAdminAllBookings':   'getAdminConferenceBookings',
+  'updateBookingStatus':   'updateConferenceBookingStatus',
+  'getAdminCalendarData':  'getAdminConferenceCalendarData',
+  'adminCreateBooking':    'adminCreateConferenceBooking'
+};
+function r_action(a) {
+  return (App.currentRoom === 'conference' && ROOM_ACTION_MAP[a]) ? ROOM_ACTION_MAP[a] : a;
+}
+function roomLabel()  { return App.currentRoom === 'conference' ? 'Conference Room' : 'RTC Showroom'; }
+function roomIcon()   { return App.currentRoom === 'conference' ? '🏛️' : '🏢'; }
+function roomColor()  { return App.currentRoom === 'conference' ? '#1e40af' : '#800000'; }
+
+function switchRoom(room) {
+  if (App.currentRoom === room) return;
+  App.currentRoom = room;
+  // Update logo text
+  document.getElementById('logoRoomName').textContent = room === 'conference' ? 'RTC Conference' : 'RTC Showroom';
+  // Show/hide banner
+  document.getElementById('confBanner').classList.toggle('show', room === 'conference');
+  // Reload current view data
+  const v = App.currentView;
+  renderNav();
+  if (v === 'public')  { loadPublicCalendar(); loadPublicDashboard(); }
+  if (v === 'user')    { loadUserBookings(); }
+  if (v === 'book')    { resetBookingForm(); }
+  if (v === 'admin')   { loadAdminStats(); loadAdminToday(); }
+  // If admin is on bookings/calendar tab, reload those too
+  if (App.allBookings.length) loadAdminBookings();
 }
 
 // ── Views ─────────────────────────────────────────────────────
@@ -806,19 +936,21 @@ function showView(v) {
 
 // ── PUBLIC DASHBOARD ──────────────────────────────────────────
 function loadPublicDashboard() {
-  api('getDashboardStats', {}, function(r) {
+  const action = App.currentRoom === 'conference' ? 'getConferenceStats' : 'getDashboardStats';
+  api(action, {}, function(r) {
     if (r && r.success) {
-      document.getElementById('statTotal').textContent = r.total;
-      document.getElementById('statToday').textContent = r.today;
-      document.getElementById('statMonth').textContent = r.thisMonth;
-      document.getElementById('statAvail').textContent = r.availableToday;
+      const isConf = App.currentRoom === 'conference';
+      document.getElementById('statTotal').textContent = r.total     != null ? r.total : '—';
+      document.getElementById('statToday').textContent = r.today     != null ? r.today : '—';
+      document.getElementById('statMonth').textContent = r.thisMonth != null ? r.thisMonth : '—';
+      document.getElementById('statAvail').textContent = r.availableToday != null ? r.availableToday : (isConf ? '—' : '—');
     }
   });
   loadPublicCalendar();
 }
 
 function loadPublicCalendar() {
-  api('getPublicCalendarData', { month: App.calMonth, year: App.calYear }, function(r) {
+  api(r_action('getPublicCalendarData'), { month: App.calMonth, year: App.calYear }, function(r) {
     if (r && r.success) { App.calData = r.data; renderPublicCalendar(); }
   });
 }
@@ -862,7 +994,7 @@ function selectPublicDate(ds) {
 function loadPublicSlots(ds) {
   const panel = document.getElementById('slotPanel');
   panel.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
-  api('getPublicSlots', { date: ds }, function(r) {
+  api(r_action('getPublicSlots'), { date: ds }, function(r) {
     const label = fmtDateLong(ds);
     let h = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div>`;
     if (r.blocked) {
@@ -985,6 +1117,12 @@ function prefillBookingForm() {
 }
 
 function resetBookingForm() {
+  // Update labels to reflect current room
+  const isConf = App.currentRoom === 'conference';
+  const el1 = document.getElementById('bookPageTitle');
+  const el2 = document.getElementById('bookPageSubtitle');
+  if (el1) el1.textContent = isConf ? 'Book Conference Room' : 'Book Appointment';
+  if (el2) el2.textContent = isConf ? 'Reserve the conference room — subject to admin approval' : 'Schedule a showroom visit — subject to admin approval';
   document.getElementById('bkDate').value = '';
   document.getElementById('bkStartTime').innerHTML = '<option value="">— Select a date first —</option>';
   document.getElementById('bkStartTime').disabled = true;
@@ -1009,7 +1147,7 @@ function loadBookingSlots() {
   info.innerHTML     = '';
   if (!ds) return;
 
-  api('getPublicSlots', { date: ds }, function(r) {
+  api(r_action('getPublicSlots'), { date: ds }, function(r) {
     if (!r || !r.success) {
       startSel.innerHTML = '<option value="">Error — check console</option>';
       info.innerHTML = '<div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> API error: ' + (r && r.message || 'Unknown error') + '</div>';
@@ -1087,7 +1225,7 @@ function doCreateBooking() {
     showAlert('bookAlert', 'Please fill in all required fields, including start and end time.', 'error'); return;
   }
   setBtnLoading('btnBook', true);
-  api('createBooking', { userId: App.user.userId, fullName: name, email: email, mobile: mobile, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests }, function(r) {
+  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, mobile: mobile, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests }, function(r) {
     setBtnLoading('btnBook', false);
     if (r && r.success) {
       toast('Booking submitted! Awaiting admin approval.', 'warn');
@@ -1110,7 +1248,7 @@ function switchUserTab(tab) {
 }
 
 function loadUserBookings() {
-  api('getUserBookings', { userId: App.user.userId }, function(r) {
+  api(r_action('getUserBookings'), { userId: App.user.userId }, function(r) {
     App.userBookings = (r && r.success) ? r.bookings : [];
     renderUserUpcoming();
     renderUserHistory();
@@ -1165,7 +1303,7 @@ function escHtml(s) { const d = document.createElement('div'); d.textContent = s
 
 function userCancel(bookingId) {
   if (!confirm('Cancel booking ' + bookingId + '?')) return;
-  api('cancelBooking', { bookingId: bookingId, userId: App.user.userId }, function(r) {
+  api(r_action('cancelBooking'), { bookingId: bookingId, userId: App.user.userId }, function(r) {
     if (r && r.success) { toast('Booking cancelled.', 'success'); loadUserBookings(); }
     else toast((r && r.message) || 'Failed.', 'error');
   });
@@ -1190,7 +1328,7 @@ function loadRescheduleSlots() {
   startSel.innerHTML = '<option value="">Loading...</option>'; startSel.disabled = true;
   endSel.innerHTML   = '<option value="">—</option>';         endSel.disabled   = true;
   if (!ds) return;
-  api('getPublicSlots', { date: ds }, function(r) {
+  api(r_action('getPublicSlots'), { date: ds }, function(r) {
     if (r.blocked) { startSel.innerHTML = '<option value="">Date not available</option>'; showAlert('rescheduleAlert','Date is blocked.','error'); return; }
     App.rsBookedBlocks = r.bookedBlocks || [];
     App.slotConfig     = { openMin: r.openMin||480, closeMin: r.closeMin||1080, slotMin: r.slotMin||30 };
@@ -1230,7 +1368,7 @@ function doReschedule() {
   const newEndTime    = document.getElementById('rsEndTime').value;
   if (!newDate || !newStartTime || !newEndTime) { showAlert('rescheduleAlert','Select a new date, start time, and end time.','error'); return; }
   setBtnLoading('btnReschedule', true);
-  api('rescheduleBooking', { bookingId: bookingId, userId: App.user.userId, newDate: newDate, newStartTime: newStartTime, newEndTime: newEndTime }, function(r) {
+  api(r_action('rescheduleBooking'), { bookingId: bookingId, userId: App.user.userId, newDate: newDate, newStartTime: newStartTime, newEndTime: newEndTime }, function(r) {
     setBtnLoading('btnReschedule', false);
     if (r && r.success) { toast(r.message, 'warn'); closeModal('modalReschedule'); loadUserBookings(); }
     else showAlert('rescheduleAlert', (r && r.message) || 'Failed.', 'error');
@@ -1249,30 +1387,41 @@ function switchAdminTab(tab) {
 }
 
 function loadAdminStats() {
-  api('getAdminStats', {}, function(r) {
-    if (!r || !r.success) return;
-    document.getElementById('aStatTotal').textContent     = r.total;
-    document.getElementById('aStatPending').textContent   = r.pending;
-    document.getElementById('aStatConfirmed').textContent = r.confirmed;
-    document.getElementById('aStatCompleted').textContent = r.completed;
-    document.getElementById('aStatCancelled').textContent = r.cancelled;
-    document.getElementById('aStatToday').textContent     = r.today;
-    document.getElementById('aStatMonth').textContent     = r.thisMonth;
+  const isConf = App.currentRoom === 'conference';
+  const action = isConf ? 'getConferenceStats' : 'getAdminStats';
+  // Update overview heading to show which room's stats are shown
+  const overviewLabel = document.getElementById('adminOverviewRoomLabel');
+  if (overviewLabel) overviewLabel.textContent = isConf ? '🏛️ Conference Room' : '🏢 Showroom';
 
-    // Pending banner
-    const banner = document.getElementById('pendingBanner');
-    if (r.pending > 0) {
-      banner.classList.remove('hidden');
-      document.getElementById('pendingBannerSub').textContent = r.pending + ' booking(s) need your review';
-    } else {
-      banner.classList.add('hidden');
+  api(action, {}, function(r) {
+    if (!r || !r.success) return;
+    document.getElementById('aStatTotal').textContent     = r.total     || 0;
+    document.getElementById('aStatPending').textContent   = r.pending   || 0;
+    document.getElementById('aStatConfirmed').textContent = r.confirmed || 0;
+    document.getElementById('aStatCompleted').textContent = r.completed || 0;
+    document.getElementById('aStatCancelled').textContent = r.cancelled || 0;
+    // today/thisMonth only available on showroom stats
+    if (!isConf) {
+      document.getElementById('aStatToday').textContent = r.today    || 0;
+      document.getElementById('aStatMonth').textContent = r.thisMonth || 0;
+    }
+
+    // Pending banner — show only for showroom (admin pending count badge)
+    if (!isConf) {
+      const banner = document.getElementById('pendingBanner');
+      if (r.pending > 0) {
+        banner.classList.remove('hidden');
+        document.getElementById('pendingBannerSub').textContent = r.pending + ' booking(s) need your review';
+      } else {
+        banner.classList.add('hidden');
+      }
     }
   });
 }
 
 function loadAdminToday() {
   const today = todayStr();
-  api('getAdminCalendarData', { month: new Date().getMonth()+1, year: new Date().getFullYear() }, function(r) {
+  api(r_action('getAdminCalendarData'), { month: new Date().getMonth()+1, year: new Date().getFullYear() }, function(r) {
     const el  = document.getElementById('adminTodayList');
     const bks = (r && r.success && r.data[today]) ? r.data[today] : [];
     if (bks.length === 0) { el.innerHTML = '<div class="empty-state" style="padding:24px"><p>No bookings today.</p></div>'; return; }
@@ -1302,7 +1451,7 @@ function loadAdminToday() {
 var PAGE_SIZE = 15, currentPage = 1, filteredBookings = [];
 
 function loadAdminBookings() {
-  api('getAdminAllBookings', {}, function(r) {
+  api(r_action('getAdminAllBookings'), {}, function(r) {
     App.allBookings = (r && r.success) ? r.bookings : [];
     filteredBookings = App.allBookings;
     currentPage = 1;
@@ -1348,9 +1497,9 @@ function renderBookingsTable(bookings) {
       <td class="fw-bold">${b.title || '—'}</td>
       <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button><div class="text-sm text-muted">${b.mobile}</div></div></div></td>
       <td class="text-sm text-muted">${b.email}</td>
-      <td class="text-sm" style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.purpose}</td>
+      <td class="text-sm" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${escHtml(b.purpose)}</td>
       <td class="text-sm" style="max-width:130px">${b.guests ? escHtml(b.guests).replace(/\n/g,'<br>') : '—'}</td>
-      <td class="text-sm text-muted" style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.remarks || '—'}</td>
+      <td class="text-sm text-muted" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${b.remarks ? escHtml(b.remarks) : '—'}</td>
       <td>${statusBadge(b.status)}</td>
       <td><div class="td-actions">
         ${isPending ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${b.bookingId}')"><i class="fa-solid fa-check"></i></button>
@@ -1410,7 +1559,7 @@ function viewUserProfile(email) {
 
 function quickApprove(bookingId) {
   if (!confirm('Approve booking ' + bookingId + '? This will send a confirmation email to the client.')) return;
-  api('updateBookingStatus', { bookingId: bookingId, status: 'Confirmed', adminUsername: App.admin.username }, function(r) {
+  api(r_action('updateBookingStatus'), { bookingId: bookingId, status: 'Confirmed', adminUsername: App.admin.username }, function(r) {
     if (r && r.success) { toast('Booking approved! Confirmation email sent.', 'success'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
     else toast((r && r.message) || 'Failed.', 'error');
   });
@@ -1418,7 +1567,7 @@ function quickApprove(bookingId) {
 
 function quickReject(bookingId) {
   if (!confirm('Reject and cancel booking ' + bookingId + '?')) return;
-  api('updateBookingStatus', { bookingId: bookingId, status: 'Cancelled', adminUsername: App.admin.username }, function(r) {
+  api(r_action('updateBookingStatus'), { bookingId: bookingId, status: 'Cancelled', adminUsername: App.admin.username }, function(r) {
     if (r && r.success) { toast('Booking rejected.', 'info'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
     else toast((r && r.message) || 'Failed.', 'error');
   });
@@ -1462,7 +1611,7 @@ function updateStatusUI() {
 function doUpdateStatus() {
   const bookingId = document.getElementById('statusBookingId').value;
   const status    = document.getElementById('statusSelect').value;
-  api('updateBookingStatus', { bookingId: bookingId, status: status, adminUsername: App.admin.username }, function(r) {
+  api(r_action('updateBookingStatus'), { bookingId: bookingId, status: status, adminUsername: App.admin.username }, function(r) {
     if (r && r.success) { toast(r.message, status === 'Confirmed' ? 'success' : 'info'); closeModal('modalStatus'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
     else toast((r && r.message) || 'Update failed.', 'error');
   });
@@ -1470,7 +1619,7 @@ function doUpdateStatus() {
 
 // Admin Calendar
 function loadAdminCalendar() {
-  api('getAdminCalendarData', { month: App.adminCalMonth, year: App.adminCalYear }, function(r) {
+  api(r_action('getAdminCalendarData'), { month: App.adminCalMonth, year: App.adminCalYear }, function(r) {
     if (r && r.success) { App.adminCalData = r.data; renderAdminCalendar(); }
   });
 }
@@ -1778,6 +1927,11 @@ function doResetPassword() {
 var _acUsers = [];
 
 function openAdminCreateBooking() {
+  const isConf = App.currentRoom === 'conference';
+  const titleEl = document.getElementById('acModalTitle');
+  if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Create ${isConf ? 'Conference Room' : 'Showroom'} Booking`;
+  const noteEl = document.getElementById('acRoomNote');
+  if (noteEl) noteEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>${isConf ? '🏛️ <strong>Conference Room</strong> —' : '🏢 <strong>Showroom</strong> —'} booking will be <strong>auto-confirmed</strong> and a confirmation email sent to the user.`;
   document.getElementById('acEmail').value    = '';
   document.getElementById('acDate').value     = '';
   document.getElementById('acTitle').value    = '';
@@ -1824,7 +1978,7 @@ function loadAcSlots() {
   const dateVal = document.getElementById('acDate').value;
   if (!dateVal) return;
   document.getElementById('acSlotInfo').textContent = 'Loading slots…';
-  api('getPublicSlots', { date: dateVal }, function(r) {
+  api(r_action('getPublicSlots'), { date: dateVal }, function(r) {
     const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
     const startSel = document.getElementById('acStart');
     const endSel   = document.getElementById('acEnd');
@@ -1849,7 +2003,7 @@ function updateAcEndTimes() {
   const endSel   = document.getElementById('acEnd');
   endSel.innerHTML = '<option value="">-- End Time --</option>';
   if (!startVal || !dateVal) return;
-  api('getPublicSlots', { date: dateVal }, function(r) {
+  api(r_action('getPublicSlots'), { date: dateVal }, function(r) {
     const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
     const startMin = timeStrToMinJs(startVal);
     const CLOSE=18*60, STEP=30;
@@ -1891,7 +2045,7 @@ function doAdminCreateBooking() {
   if (!end)     { showAlert('acAlert','Select an end time.','error'); return; }
   if (!purpose) { showAlert('acAlert','Purpose is required.','error'); return; }
   setBtnLoading('btnAcSubmit', true);
-  api('adminCreateBooking', {
+  api(r_action('adminCreateBooking'), {
     adminUsername: App.admin.username,
     userEmail: email, bookingDate: date,
     startTime: start, endTime: end,
@@ -1909,83 +2063,6 @@ function doAdminCreateBooking() {
 }
 </script>
 
-<!-- ── MODAL: VIEW USER (Admin) ──────────────────────────── -->
-<div class="modal-overlay hidden" id="modalViewUser">
-  <div class="modal-box" style="max-width:440px">
-    <div class="modal-header">
-      <h3><i class="fa-solid fa-user"></i> User Profile</h3>
-      <button class="modal-close" onclick="closeModal('modalViewUser')">&times;</button>
-    </div>
-    <div style="padding:28px">
-      <div id="vuLoading" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></div>
-      <div id="vuContent" style="display:none"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── MODAL: PROFILE ─────────────────────────────────────── -->
-<div class="modal-overlay hidden" id="modalProfile">
-  <div class="modal-box" style="max-width:460px">
-    <div class="modal-header">
-      <h3><i class="fa-solid fa-user-circle"></i> My Profile</h3>
-      <button class="modal-close" onclick="closeModal('modalProfile')">&times;</button>
-    </div>
-    <div style="padding:28px">
-      <!-- Avatar + info -->
-      <input type="file" id="profilePicInput" accept="image/*" style="display:none" onchange="onProfilePicChange(this)">
-      <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px">
-        <div id="profileAvatarWrap" style="display:flex;flex-direction:column;align-items:center;gap:4px"></div>
-        <div>
-          <div style="font-size:18px;font-weight:700;color:#1f2937" id="profileName"></div>
-          <div style="font-size:13px;color:#6b7280" id="profileEmail"></div>
-          <div style="font-size:12px;font-weight:600;color:#800000;margin-top:2px" id="profileRole"></div>
-        </div>
-      </div>
-      <div id="profileAlert"></div>
-      <!-- Edit form -->
-      <div class="form-group">
-        <label>Display Name <span>*</span></label>
-        <input class="form-control" type="text" id="pfFullName" placeholder="Your full name">
-      </div>
-      <div class="form-group" id="pfMobileRow">
-        <label>Mobile</label>
-        <input class="form-control" type="tel" id="pfMobile" placeholder="09XXXXXXXXX">
-      </div>
-      <div class="form-group" id="pfDeptRow">
-        <label>Department</label>
-        <input class="form-control" type="text" id="pfDept" placeholder="e.g. Sales, Operations, HR...">
-      </div>
-      <div class="form-group">
-        <label>Position / Role</label>
-        <input class="form-control" type="text" id="pfPosition" placeholder="e.g. Sales Manager, Admin Officer...">
-      </div>
-      <button class="btn btn-primary btn-full" onclick="saveProfile()" id="btnSaveProfile">
-        <i class="fa-solid fa-floppy-disk"></i> Save Profile
-      </button>
-      <!-- Change Password (users only) -->
-      <div id="pfPwSection">
-        <hr class="divider" style="margin:20px 0">
-        <div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:12px"><i class="fa-solid fa-lock" style="margin-right:6px;color:#800000"></i>Change Password</div>
-        <div class="form-group">
-          <label>Current Password</label>
-          <div class="pw-wrap"><input class="form-control" type="password" id="pfOldPw" placeholder="Current password"><button type="button" class="pw-eye" onclick="togglePw('pfOldPw',this)"><i class="fa-solid fa-eye"></i></button></div>
-        </div>
-        <div class="form-group">
-          <label>New Password</label>
-          <div class="pw-wrap"><input class="form-control" type="password" id="pfNewPw" placeholder="Min. 6 characters"><button type="button" class="pw-eye" onclick="togglePw('pfNewPw',this)"><i class="fa-solid fa-eye"></i></button></div>
-        </div>
-        <div class="form-group">
-          <label>Confirm New Password</label>
-          <div class="pw-wrap"><input class="form-control" type="password" id="pfConfirmPw" placeholder="Re-enter new password"><button type="button" class="pw-eye" onclick="togglePw('pfConfirmPw',this)"><i class="fa-solid fa-eye"></i></button></div>
-        </div>
-                <button class="btn btn-danger btn-sm btn-full" onclick="doChangePassword()" id="btnChangePw" style="margin-top:4px">
-          <i class="fa-solid fa-key"></i> Change Password
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ── MODAL: FORGOT PASSWORD (OTP Flow) ─────────────────── -->
 <div class="modal-overlay hidden" id="modalForgot">
   <div class="modal-box" style="max-width:420px">
@@ -1994,7 +2071,6 @@ function doAdminCreateBooking() {
       <button class="modal-close" onclick="closeModal('modalForgot');resetForgotFlow()">&times;</button>
     </div>
     <div style="padding:28px">
-      <!-- Step 1: Enter email -->
       <div id="fpStep1">
         <p style="font-size:14px;color:#6b7280;margin-bottom:16px">Enter your company email and we'll send you a 6-digit OTP.</p>
         <div id="fpAlert1"></div>
@@ -2006,7 +2082,6 @@ function doAdminCreateBooking() {
           <i class="fa-solid fa-paper-plane"></i> Send OTP
         </button>
       </div>
-      <!-- Step 2: Enter OTP + new password -->
       <div id="fpStep2" class="hidden">
         <div style="background:#fffbe6;border:1px solid #fcd34d;border-radius:8px;padding:12px;font-size:13px;color:#92400e;margin-bottom:16px">
           <i class="fa-solid fa-circle-info" style="margin-right:6px"></i>OTP sent! Check your email — valid for <strong>15 minutes</strong>.
@@ -2039,7 +2114,7 @@ function doAdminCreateBooking() {
 <div class="modal-overlay hidden" id="modalAdminCreate">
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header">
-      <h3><i class="fa-solid fa-calendar-plus"></i> Create Booking for User</h3>
+      <h3 id="acModalTitle"><i class="fa-solid fa-calendar-plus"></i> Create Booking for User</h3>
       <button class="modal-close" onclick="closeModal('modalAdminCreate')">&times;</button>
     </div>
     <div style="padding:28px">
@@ -2084,12 +2159,26 @@ function doAdminCreateBooking() {
         <label>Remarks</label>
         <input class="form-control" type="text" id="acRemarks" placeholder="Optional notes">
       </div>
-      <div style="background:#fffbe6;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:16px">
+      <div id="acRoomNote" style="background:#fffbe6;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:16px">
         <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>Booking will be <strong>auto-confirmed</strong> and a confirmation email sent to the user.
       </div>
       <button class="btn btn-success btn-full" onclick="doAdminCreateBooking()" id="btnAcSubmit">
         <i class="fa-solid fa-calendar-plus"></i> Create &amp; Confirm Booking
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: VIEW USER (Admin) ──────────────────────────── -->
+<div class="modal-overlay hidden" id="modalViewUser">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-user"></i> User Profile</h3>
+      <button class="modal-close" onclick="closeModal('modalViewUser')">&times;</button>
+    </div>
+    <div style="padding:28px">
+      <div id="vuLoading" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></div>
+      <div id="vuContent" style="display:none"></div>
     </div>
   </div>
 </div>
