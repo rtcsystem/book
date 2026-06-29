@@ -1083,7 +1083,7 @@ function doAdminLogin() {
   setBtnLoading('btnAdminLogin', true);
   api('adminLogin', { username: username, password: pwd }, function(r) {
     setBtnLoading('btnAdminLogin', false);
-    if (r && r.success) { App.admin = { username: r.username, displayName: r.displayName || r.username, position: r.position || '' }; toast('Admin access granted!', 'success'); renderNav(); showView('admin'); }
+    if (r && r.success) { App.admin = { username: r.username, displayName: r.displayName || r.username, position: r.position || '', avatar: r.avatar || '' }; toast('Admin access granted!', 'success'); renderNav(); showView('admin'); }
     else showAlert('adminLoginAlert', (r && r.message) || 'Invalid credentials.', 'error');
   }, function() { setBtnLoading('btnAdminLogin', false); showAlert('adminLoginAlert', 'Network error. Try again.', 'error'); });
 }
