@@ -2295,5 +2295,89 @@ function doAdminCreateBooking() {
   </div>
 </div>
 
+
+
+// ============================================================
+// 🔐 SSO AUTO-LOGIN FROM PORTAL
+// ============================================================
+function checkAndProcessSSO() {
+  const params = new URLSearchParams(window.location.search);
+  const ssoEmail = params.get('email');
+  const ssoToken = params.get('sso');
+  
+  console.log('🔐 SSO Check:', { ssoEmail, ssoToken });
+  
+  if (!ssoEmail || !ssoToken) {
+    console.log('No SSO params - normal login flow');
+    return;
+  }
+  
+  console.log('✅ SSO Login detected for:', ssoEmail);
+  
+  // Store SSO info
+  sessionStorage.setItem('sso_email', ssoEmail);
+  sessionStorage.setItem('sso_token', ssoToken);
+  sessionStorage.setItem('sso_mode', 'true');
+  
+  // Pre-fill and auto-login
+  setTimeout(() => {
+    const emailInput = document.getElementById('ulEmail');
+    if (emailInput) {
+      emailInput.value = ssoEmail;
+      emailInput.disabled = true;  // Don't let them change it
+      
+      // Auto-login with SSO token as password
+      console.log('⏳ Auto-logging in...');
+      doSSOLogin(ssoEmail, ssoToken);
+    }
+  }, 500);
+}
+
+function doSSOLogin(email, token) {
+  console.log('🔐 Attempting SSO login:', email);
+  
+  // Call the backend with SSO mode
+  api('userLogin', { 
+    email: email, 
+    password: token,
+    ssoMode: true,
+    sso: token
+  }, function(r) {
+    console.log('SSO Response:', r);
+    if (r && r.success) {
+      console.log('✅ SSO Login successful!');
+      App.user = r.user;
+      sessionStorage.setItem('currentUser', JSON.stringify(r.user));
+      toast('Welcome, ' + r.user.fullName + '!', 'success');
+      renderNav();
+      showView('user');
+      
+      // Clean up URL (remove SSO params)
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      console.log('❌ SSO Login failed:', r ? r.message : 'Unknown error');
+      // Show regular login form
+      showView('login');
+      showAlert('userLoginAlert', 'Auto-login failed. Please login manually.', 'error');
+      
+      // Re-enable email field
+      const emailInput = document.getElementById('ulEmail');
+      if (emailInput) emailInput.disabled = false;
+    }
+  }, function(err) {
+    console.error('SSO Network error:', err);
+    showView('login');
+    showAlert('userLoginAlert', 'Connection error. Please try again.', 'error');
+    const emailInput = document.getElementById('ulEmail');
+    if (emailInput) emailInput.disabled = false;
+  });
+}
+
+// Run SSO check when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('📄 Page loaded - checking for SSO...');
+  checkAndProcessSSO();
+});
+
 </body>
 </html>
