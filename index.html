@@ -1045,24 +1045,69 @@ function loadPublicSlots(ds) {
     // Show available windows
     if (availWindows.length > 0) {
       availWindows.forEach(function(w) {
-        h += `<div class="slot-item slot-avail"><div class="slot-time"><i class="fa-regular fa-clock" style="margin-right:6px"></i>${minToTimeStr(w.startMin)} – ${minToTimeStr(w.endMin)}</div><span class="slot-label avail">Available</span></div>`;
+        const startStr = minToTimeStr(w.startMin);
+        const clickFn  = App.admin
+          ? `adminPrefillAndBook('${ds}','${startStr}')`
+          : App.user
+            ? `prefillAndBook('${ds}','${startStr}')`
+            : `showView('login')`;
+        const cursor = (App.admin || App.user) ? 'cursor:pointer' : '';
+        h += `<div class="slot-item slot-avail" style="${cursor}" onclick="${clickFn}"><div class="slot-time"><i class="fa-regular fa-clock" style="margin-right:6px"></i>${startStr} – ${minToTimeStr(w.endMin)}</div><span class="slot-label avail">${App.admin || App.user ? 'Click to Book' : 'Available'}</span></div>`;
       });
     } else {
       h += `<div class="alert alert-warn" style="margin-top:8px"><i class="fa-solid fa-calendar-xmark"></i> Fully booked for this day.</div>`;
     }
 
-    if (hasAvail && App.user) {
+    if (hasAvail && App.admin) {
+      h += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="adminPrefillAndBook('${ds}')"><i class="fa-solid fa-calendar-plus"></i> Book This Date</button>`;
+    } else if (hasAvail && App.user) {
       h += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="prefillAndBook('${ds}')"><i class="fa-solid fa-calendar-plus"></i> Book This Date</button>`;
-    } else if (!App.user && hasAvail) {
+    } else if (!App.user && !App.admin && hasAvail) {
       h += `<div class="alert alert-info" style="margin-top:12px"><i class="fa-solid fa-circle-info"></i><span><a onclick="showView('login')" style="color:#1e40af;font-weight:700;cursor:pointer">Login</a> or <a onclick="showView('register')" style="color:#1e40af;font-weight:700;cursor:pointer">register</a> to book.</span></div>`;
     }
     panel.innerHTML = h;
   });
 }
 
-function prefillAndBook(ds) {
+function prefillAndBook(ds, startTime) {
   showView('book');
-  setTimeout(function() { document.getElementById('bkDate').value = ds; loadBookingSlots(); }, 100);
+  setTimeout(function() {
+    document.getElementById('bkDate').value = ds;
+    loadBookingSlots();
+    if (startTime) {
+      // Wait for slots to load then select the start time
+      var attempts = 0;
+      var interval = setInterval(function() {
+        var sel = document.getElementById('bkStartTime');
+        if (sel && !sel.disabled && sel.options.length > 1) {
+          sel.value = startTime;
+          onStartTimeChange();
+          clearInterval(interval);
+        }
+        if (++attempts > 20) clearInterval(interval);
+      }, 150);
+    }
+  }, 100);
+}
+
+function adminPrefillAndBook(ds, startTime) {
+  openAdminCreateBooking();
+  document.getElementById('acDate').value = ds;
+  document.getElementById('acDate').min = new Date().toISOString().slice(0,10);
+  document.getElementById('modalAdminCreate').classList.remove('hidden');
+  loadAcSlots();
+  if (startTime) {
+    var attempts = 0;
+    var interval = setInterval(function() {
+      var sel = document.getElementById('acStart');
+      if (sel && sel.options.length > 1) {
+        sel.value = startTime;
+        updateAcEndTimes();
+        clearInterval(interval);
+      }
+      if (++attempts > 20) clearInterval(interval);
+    }, 150);
+  }
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
