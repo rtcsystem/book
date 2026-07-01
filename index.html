@@ -808,7 +808,36 @@ window.onload = function() {
   ['bkDate','rsDate'].forEach(function(id) { const el = document.getElementById(id); if (el) el.min = today; });
   loadPublicDashboard();
   renderNav();
+  tryAutoSSOLogin();
 };
+
+// ── SSO auto-login (arrived via "Book a Room" from Employee Portal) ──
+function tryAutoSSOLogin() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('ssoToken');
+  if (!token) return;
+
+  // Strip the token from the URL immediately so it can't be re-shared
+  // or re-read from browser history.
+  params.delete('ssoToken');
+  const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+  window.history.replaceState({}, document.title, cleanUrl);
+
+  api('ssoLogin', { token: token }, function(r) {
+    if (r && r.success) {
+      App.user = r.user;
+      toast('Welcome, ' + r.user.fullName + '! Signed in via Employee Portal.', 'success');
+      renderNav();
+      showView('user');
+    } else {
+      toast((r && r.message) || 'SSO sign-in failed. Please log in manually.', 'error');
+      showView('login');
+    }
+  }, function() {
+    toast('Network error during sign-in. Please log in manually.', 'error');
+    showView('login');
+  });
+}
 
 // ── Utils ─────────────────────────────────────────────────────
 function todayStr() {
@@ -2272,112 +2301,4 @@ function doAdminCreateBooking() {
         <textarea class="form-control auto-resize" id="acMealRemarks" rows="2" style="min-height:60px;resize:none;overflow:hidden" placeholder="Specify meal type, dietary requirements, number of pax..."></textarea>
       </div>
       <div id="acRoomNote" style="background:#fffbe6;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:16px">
-        <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>Booking will be <strong>auto-confirmed</strong> and a confirmation email sent to the user.
-      </div>
-      <button class="btn btn-success btn-full" onclick="doAdminCreateBooking()" id="btnAcSubmit">
-        <i class="fa-solid fa-calendar-plus"></i> Create &amp; Confirm Booking
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ── MODAL: VIEW USER (Admin) ──────────────────────────── -->
-<div class="modal-overlay hidden" id="modalViewUser">
-  <div class="modal-box" style="max-width:440px">
-    <div class="modal-header">
-      <h3><i class="fa-solid fa-user"></i> User Profile</h3>
-      <button class="modal-close" onclick="closeModal('modalViewUser')">&times;</button>
-    </div>
-    <div style="padding:28px">
-      <div id="vuLoading" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></div>
-      <div id="vuContent" style="display:none"></div>
-    </div>
-  </div>
-</div>
-
-
-
-// ============================================================
-// 🔐 SSO AUTO-LOGIN FROM PORTAL
-// ============================================================
-function checkAndProcessSSO() {
-  const params = new URLSearchParams(window.location.search);
-  const ssoEmail = params.get('email');
-  const ssoToken = params.get('sso');
-  
-  console.log('🔐 SSO Check:', { ssoEmail, ssoToken });
-  
-  if (!ssoEmail || !ssoToken) {
-    console.log('No SSO params - normal login flow');
-    return;
-  }
-  
-  console.log('✅ SSO Login detected for:', ssoEmail);
-  
-  // Store SSO info
-  sessionStorage.setItem('sso_email', ssoEmail);
-  sessionStorage.setItem('sso_token', ssoToken);
-  sessionStorage.setItem('sso_mode', 'true');
-  
-  // Pre-fill and auto-login
-  setTimeout(() => {
-    const emailInput = document.getElementById('ulEmail');
-    if (emailInput) {
-      emailInput.value = ssoEmail;
-      emailInput.disabled = true;  // Don't let them change it
-      
-      // Auto-login with SSO token as password
-      console.log('⏳ Auto-logging in...');
-      doSSOLogin(ssoEmail, ssoToken);
-    }
-  }, 500);
-}
-
-function doSSOLogin(email, token) {
-  console.log('🔐 Attempting SSO login:', email);
-  
-  // Call the backend with SSO mode
-  api('userLogin', { 
-    email: email, 
-    password: token,
-    ssoMode: true,
-    sso: token
-  }, function(r) {
-    console.log('SSO Response:', r);
-    if (r && r.success) {
-      console.log('✅ SSO Login successful!');
-      App.user = r.user;
-      sessionStorage.setItem('currentUser', JSON.stringify(r.user));
-      toast('Welcome, ' + r.user.fullName + '!', 'success');
-      renderNav();
-      showView('user');
-      
-      // Clean up URL (remove SSO params)
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      console.log('❌ SSO Login failed:', r ? r.message : 'Unknown error');
-      // Show regular login form
-      showView('login');
-      showAlert('userLoginAlert', 'Auto-login failed. Please login manually.', 'error');
-      
-      // Re-enable email field
-      const emailInput = document.getElementById('ulEmail');
-      if (emailInput) emailInput.disabled = false;
-    }
-  }, function(err) {
-    console.error('SSO Network error:', err);
-    showView('login');
-    showAlert('userLoginAlert', 'Connection error. Please try again.', 'error');
-    const emailInput = document.getElementById('ulEmail');
-    if (emailInput) emailInput.disabled = false;
-  });
-}
-
-// Run SSO check when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('📄 Page loaded - checking for SSO...');
-  checkAndProcessSSO();
-});
-
-</body>
-</html>
+        <
