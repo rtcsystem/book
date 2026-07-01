@@ -825,10 +825,17 @@ function tryAutoSSOLogin() {
 
   api('ssoLogin', { token: token }, function(r) {
     if (r && r.success) {
-      App.user = r.user;
-      toast('Welcome, ' + r.user.fullName + '! Signed in via Employee Portal.', 'success');
-      renderNav();
-      showView('user');
+      if (r.isAdmin) {
+        App.admin = r.admin;
+        toast('Welcome, ' + r.admin.displayName + '! Signed in via Employee Portal.', 'success');
+        renderNav();
+        showView('admin');
+      } else {
+        App.user = r.user;
+        toast('Welcome, ' + r.user.fullName + '! Signed in via Employee Portal.', 'success');
+        renderNav();
+        showView('user');
+      }
     } else {
       toast((r && r.message) || 'SSO sign-in failed. Please log in manually.', 'error');
       showView('login');
