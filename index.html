@@ -451,7 +451,7 @@ tr.row-pending:hover td { background: #fef9c3; }
         <div id="bookSlotInfo"></div>
         <div class="form-group"><label>Title <span>*</span></label><input class="form-control" type="text" id="bkTitle" placeholder="e.g. Product Demo, Client Meeting, Showroom Visit..."></div>
         <div class="form-group">
-          <label>Purpose of Visit <span>*</span></label>
+          <label>Agenda <span>*</span></label>
           <textarea class="form-control auto-resize" id="bkPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Describe the purpose of your visit or meeting agenda..."></textarea>
         </div>
         <div class="form-group">
@@ -552,7 +552,7 @@ tr.row-pending:hover td { background: #fef9c3; }
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Title</th><th>Client</th><th>Email</th><th>Purpose</th><th>Guests</th><th>Remarks</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Title</th><th>Client</th><th>Email</th><th>Agenda</th><th>Guests</th><th>Remarks</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody id="bookingsTableBody"><tr><td colspan="11" style="text-align:center;padding:32px;color:#9ca3af">Loading...</td></tr></tbody>
             </table>
           </div>
@@ -1797,7 +1797,7 @@ function selectAdminDate(ds, bookings) {
           <div class="text-sm text-muted">${b.email}</div>
         </div>
       </div>
-      <div class="text-sm"><strong>Purpose:</strong> ${b.purpose}</div>
+      <div class="text-sm"><strong>Agenda:</strong> ${b.purpose}</div>
       ${b.guests  ? `<div class="text-sm" style="margin-top:4px"><strong><i class="fa-solid fa-users" style="color:#6b7280;margin-right:4px"></i>Guests:</strong><br>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
       ${b.remarks ? `<div class="text-sm text-muted" style="margin-top:4px;font-style:italic;border-left:3px solid #e5e7eb;padding-left:6px">${escHtml(b.remarks)}</div>` : ''}
       <div class="booking-actions" style="margin-top:8px">
@@ -2169,7 +2169,7 @@ function doAdminCreateBooking() {
   if (!date)       { showAlert('acAlert','Select a date.','error'); return; }
   if (!start)      { showAlert('acAlert','Select a start time.','error'); return; }
   if (!end)        { showAlert('acAlert','Select an end time.','error'); return; }
-  if (!purpose)    { showAlert('acAlert','Purpose is required.','error'); return; }
+  if (!purpose)    { showAlert('acAlert','Agenda is required.','error'); return; }
   if (!clientName) { showAlert('acAlert','Client Name is required.','error'); return; }
   if (!guests)     { showAlert('acAlert','Guest Names are required.','error'); return; }
   if (mealChecked && !mealRemarks) { showAlert('acAlert','Please specify meal remarks.','error'); return; }
@@ -2278,7 +2278,7 @@ function doAdminCreateBooking() {
         <input class="form-control" type="text" id="acTitle" placeholder="e.g. Showroom Visit - Client Name">
       </div>
       <div class="form-group">
-        <label>Purpose <span>*</span></label>
+        <label>Agenda <span>*</span></label>
         <textarea class="form-control auto-resize" id="acPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Describe the purpose of the visit or meeting agenda..."></textarea>
       </div>
       <div class="form-group">
