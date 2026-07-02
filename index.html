@@ -259,6 +259,14 @@ tr.row-pending:hover td { background: #fef9c3; }
 .modal-body   { padding: 24px; }
 .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; }
 
+/* ── FAQ accordion ──────────────────────────────────────────── */
+.faq-item { border: 1px solid var(--gray-200); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.faq-item summary { font-weight: 700; font-size: 14px; color: var(--gray-800); cursor: pointer; list-style: none; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::before { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 11px; color: var(--maroon); margin-right: 8px; display: inline-block; transition: transform .15s; }
+.faq-item[open] summary::before { transform: rotate(180deg); }
+.faq-item p { font-size: 13px; color: var(--gray-600); margin-top: 8px; line-height: 1.5; }
+
 /* ── Loading ─────────────────────────────────────────────────── */
 .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,.75); z-index: 500; display: flex; align-items: center; justify-content: center; }
 .spinner { width: 44px; height: 44px; border: 4px solid var(--gray-200); border-top-color: var(--maroon); border-radius: 50%; animation: spin .7s linear infinite; }
@@ -283,8 +291,11 @@ tr.row-pending:hover td { background: #fef9c3; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 14px; gap: 10px; }
   .stat-info h3 { font-size: 22px; }
-  .header-inner { height: 56px; }
+  .header-inner { height: auto; min-height: 56px; flex-wrap: wrap; padding: 8px 12px; row-gap: 6px; }
   .logo-text span { display: none; }
+  .header-nav { width: 100%; margin-left: 0; justify-content: flex-start; }
+  .avatar-btn-name { display: none; }
+  .nav-btn { padding: 6px 10px; font-size: 12px; }
 }
 </style>
 </head>
@@ -301,6 +312,7 @@ tr.row-pending:hover td { background: #fef9c3; }
       <div class="logo-text"><b id="logoRoomName">RTC Showroom</b><span>Booking System</span></div>
     </div>
     <nav class="header-nav" id="headerNav"></nav>
+    <button class="nav-btn" onclick="openHelpModal()" title="Help &amp; FAQ" style="margin-left:6px"><i class="fa-solid fa-circle-question"></i> Help</button>
   </div>
 </header>
 <div class="conf-banner" id="confBanner">
@@ -371,7 +383,11 @@ tr.row-pending:hover td { background: #fef9c3; }
         <div id="adminLoginForm" class="hidden">
           <div id="adminLoginAlert"></div>
           <div class="form-group"><label>Admin Username <span>*</span></label><input class="form-control" type="text" id="alUsername" placeholder="admin@rameshtrading.com.ph" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
-          <div class="form-group"><label>Password <span>*</span></label><div class="pw-wrap"><input class="form-control" type="password" id="alPassword" placeholder="Admin password" onkeydown="if(event.key==='Enter')doAdminLogin()"><button type="button" class="pw-eye" onclick="togglePw('alPassword',this)"><i class="fa-solid fa-eye"></i></button></div></div>
+          <div class="form-group">
+            <label>Password <span>*</span></label>
+            <div class="pw-wrap"><input class="form-control" type="password" id="alPassword" placeholder="Admin password" onkeydown="if(event.key==='Enter')doAdminLogin()"><button type="button" class="pw-eye" onclick="togglePw('alPassword',this)"><i class="fa-solid fa-eye"></i></button></div>
+            <button type="button" class="forgot-link" onclick="openForgotModal()">Forgot password?</button>
+          </div>
           <button class="btn btn-primary btn-full" onclick="doAdminLogin()" id="btnAdminLogin"><i class="fa-solid fa-shield-halved"></i> Admin Login</button>
         </div>
         <div class="auth-switch">No account yet? <a onclick="showView('register')">Register here</a></div>
@@ -641,7 +657,7 @@ tr.row-pending:hover td { background: #fef9c3; }
         </div>
       </div>
       <button class="btn btn-primary btn-full" onclick="saveProfile()" id="btnSaveProfile" style="margin-top:16px"><i class="fa-solid fa-floppy-disk"></i> Save Profile</button>
-      <!-- Change Password (users only) -->
+      <!-- Change Password (both users and admins) -->
       <div id="pfPwSection" style="margin-top:24px">
         <hr style="margin-bottom:16px">
         <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#374151"><i class="fa-solid fa-lock" style="margin-right:6px"></i>Change Password</div>
@@ -668,7 +684,7 @@ tr.row-pending:hover td { background: #fef9c3; }
             </div>
           </div>
         </div>
-        <button class="btn btn-outline btn-full" onclick="doChangePassword()" style="margin-top:12px"><i class="fa-solid fa-key"></i> Change Password</button>
+        <button class="btn btn-outline btn-full" onclick="doChangePassword()" id="btnChangePw" style="margin-top:12px"><i class="fa-solid fa-key"></i> Change Password</button>
       </div>
     </div>
   </div>
@@ -1156,6 +1172,7 @@ function switchLoginTab(tab) {
   showAlert('userLoginAlert','',''); showAlert('adminLoginAlert','','');
 }
 function openForgotModal() { resetForgotFlow(); document.getElementById('modalForgot').classList.remove('hidden'); }
+function openHelpModal() { document.getElementById('modalHelp').classList.remove('hidden'); }
 function resetForgotFlow() {
   document.getElementById('fpStep1').classList.remove('hidden');
   document.getElementById('fpStep2').classList.add('hidden');
@@ -1918,9 +1935,8 @@ function openProfileModal() {
   document.getElementById('pfPosition').value   = pos;
 
   const deptRow   = document.getElementById('pfDeptRow');
-  const pwSection = document.getElementById('pfPwSection');
-  if (deptRow)   deptRow.style.display   = isAdmin ? 'none' : '';
-  if (pwSection) pwSection.style.display = isAdmin ? 'none' : '';
+  if (deptRow) deptRow.style.display = isAdmin ? 'none' : '';
+  // Change Password section stays visible for both roles
   // Clear password fields
   ['pfOldPw','pfNewPw','pfConfirmPw'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
 
@@ -1982,7 +1998,11 @@ function doChangePassword() {
   if (newPw.length < 6) { showAlert('profileAlert','New password must be at least 6 characters.','error'); return; }
   if (newPw !== confirmPw) { showAlert('profileAlert','New passwords do not match.','error'); return; }
   setBtnLoading('btnChangePw', true);
-  api('changePassword', { userId: App.user.userId, oldPassword: oldPw, newPassword: newPw }, function(r) {
+  const action  = App.admin ? 'changeAdminPassword' : 'changePassword';
+  const payload = App.admin
+    ? { username: App.admin.username, oldPassword: oldPw, newPassword: newPw }
+    : { userId: App.user.userId, oldPassword: oldPw, newPassword: newPw };
+  api(action, payload, function(r) {
     setBtnLoading('btnChangePw', false);
     if (r && r.success) {
       showAlert('profileAlert','Password changed successfully!','success');
@@ -2236,6 +2256,46 @@ function doAdminCreateBooking() {
           </button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: HELP / FAQ ──────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalHelp">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-circle-question"></i> Help &amp; FAQ</h3>
+      <button class="modal-close" onclick="closeModal('modalHelp')">&times;</button>
+    </div>
+    <div style="padding:24px;max-height:70vh;overflow-y:auto">
+      <details class="faq-item" open>
+        <summary>How do I book the Showroom or Conference Room?</summary>
+        <p>Click <strong>Book Now</strong>, pick a date on the calendar, choose an available time slot, then fill in the Agenda and other details. Some bookings are auto-confirmed; others may need admin approval first.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How do I cancel or reschedule a booking?</summary>
+        <p>Go to <strong>My Bookings</strong>, find the booking, and use the Cancel or Reschedule button. This is only available before the booking's start time.</p>
+      </details>
+      <details class="faq-item">
+        <summary>I forgot my password. What do I do?</summary>
+        <p>On the login screen, click <strong>Forgot password?</strong> (available for both Employee and Admin logins). You'll receive a 6-digit OTP by email — enter it to set a new password.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How do I change my password?</summary>
+        <p>Click your name/avatar in the top-right to open <strong>My Profile</strong>, then use the Change Password section near the bottom.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Why is my booking still "Pending"?</summary>
+        <p>Some bookings require admin review before they're confirmed. You'll get an email once it's approved or if any changes are needed.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I book a room from the Employee Portal instead?</summary>
+        <p>Yes — click <strong>Book a Room</strong> in the Employee Portal and you'll be brought here already signed in, no need to log in again.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Still need help?</summary>
+        <p>Contact your system administrator or IT support for further assistance.</p>
+      </details>
     </div>
   </div>
 </div>
