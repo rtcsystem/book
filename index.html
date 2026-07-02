@@ -2368,4 +2368,15 @@ function doAdminCreateBooking() {
         <textarea class="form-control auto-resize" id="acMealRemarks" rows="2" style="min-height:60px;resize:none;overflow:hidden" placeholder="Specify meal type, dietary requirements, number of pax..."></textarea>
       </div>
       <div id="acRoomNote" style="background:#fffbe6;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:16px">
-        <
+        <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>Booking will be <strong>auto-confirmed</strong> and a confirmation email sent to the user.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAdminCreate')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAdminCreateBooking()" id="btnAcSubmit"><i class="fa-solid fa-calendar-plus"></i> Create Booking</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
