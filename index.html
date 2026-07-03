@@ -774,6 +774,12 @@ tr.row-pending:hover td { background: #fef9c3; }
 // ─────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbz3PPS5VpeiZiytGQkIe9TsnoJLEA1I9A209XvZ_bVy2DMys6D9-Hqm8p9lDTBNe1lc/exec';
 
+// "Back to Portal" target — the Employee Portal's public URL (GitHub Pages frontend).
+// Same-tab navigation (not a new tab) — the Portal's own localStorage session
+// check on load logs the user straight back in there too, no password re-entry.
+const PORTAL_URL = 'https://rtcsystem.github.io/employee/';
+function goToPortal() { window.location.href = PORTAL_URL; }
+
 // ── Time Helpers (mirrors Code.gs logic, runs on frontend) ───
 function timeStrToMin(t) {
   const m = (t||'').trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
@@ -952,14 +958,17 @@ function renderNav() {
     <button class="room-btn ${App.currentRoom==='conference'?'active':''}" onclick="switchRoom('conference')">🏛️ Conference</button>
   </div>`;
   let h = '';
+  const backToPortalBtn = `<button class="nav-btn" onclick="goToPortal()" title="Back to Employee Portal"><i class="fa-solid fa-arrow-left"></i> Back to Portal</button>`;
   if (App.admin) {
     const adminName = App.admin.displayName || App.admin.username;
+    h += backToPortalBtn;
     h += roomSwitcher;
     h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(adminName, '', App.admin.avatar)}<span class="avatar-btn-name">${adminName}</span></button>`;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-calendar"></i> Calendar</button>`;
     h += `<button class="nav-btn ${App.currentView==='admin'?'active':''}" onclick="showView('admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard${pendingCount > 0 ? `<span class="pending-badge">${pendingCount}</span>` : ''}</button>`;
     h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
   } else if (App.user) {
+    h += backToPortalBtn;
     h += roomSwitcher;
     h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(App.user.fullName, '', App.user.avatar)}<span class="avatar-btn-name">${App.user.fullName}</span></button>`;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
@@ -967,6 +976,7 @@ function renderNav() {
     h += `<button class="nav-btn accent" onclick="showView('book')"><i class="fa-solid fa-plus"></i> Book Now</button>`;
     h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
   } else {
+    h += backToPortalBtn;
     h += roomSwitcher;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
     h += `<button class="nav-btn" onclick="showView('login')"><i class="fa-solid fa-right-to-bracket"></i> Login</button>`;
