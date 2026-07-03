@@ -334,6 +334,13 @@ tr.row-pending:hover td { background: #fef9c3; }
       <div class="card">
         <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Availability Calendar</h2></div>
         <div class="card-body">
+          <div class="form-group" id="pubRoomTypeGroup" style="display:none;margin-bottom:10px">
+            <label>Room Type</label>
+            <select class="form-control" id="pubRoomType" onchange="onPubRoomTypeChange()">
+              <option value="Masflex Room">Masflex Room</option>
+              <option value="Cascade Room">Cascade Room</option>
+            </select>
+          </div>
           <div class="cal-nav">
             <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
             <h3 id="calTitle">—</h3>
@@ -453,6 +460,14 @@ tr.row-pending:hover td { background: #fef9c3; }
           <div class="form-group"><label>Full Name <span>*</span></label><input class="form-control" type="text" id="bkName" placeholder="Your full name"></div>
           <div class="form-group"><label>Email <span>*</span></label><input class="form-control" type="email" id="bkEmail" placeholder="your@email.com"></div>
         </div>
+        <div class="form-group" id="bkRoomTypeGroup" style="display:none">
+          <label>Room Type <span>*</span></label>
+          <select class="form-control" id="bkRoomType" onchange="loadBookingSlots()">
+            <option value="">— Select room —</option>
+            <option value="Masflex Room">Masflex Room</option>
+            <option value="Cascade Room">Cascade Room</option>
+          </select>
+        </div>
         <div class="form-group"><label>Visit Date <span>*</span></label><input class="form-control" type="date" id="bkDate" onchange="loadBookingSlots()"></div>
         <div class="form-row">
           <div class="form-group">
@@ -468,7 +483,7 @@ tr.row-pending:hover td { background: #fef9c3; }
         <div class="form-group"><label>Title <span>*</span></label><input class="form-control" type="text" id="bkTitle" placeholder="e.g. Product Demo, Client Meeting, Showroom Visit..."></div>
         <div class="form-group">
           <label>Agenda <span>*</span></label>
-          <textarea class="form-control auto-resize" id="bkPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Describe the purpose of your visit or meeting agenda..."></textarea>
+          <textarea class="form-control auto-resize" id="bkPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Enumerate the purpose of your visit or meeting agenda..."></textarea>
         </div>
         <div class="form-group">
           <label style="display:flex;align-items:center;justify-content:space-between">
@@ -988,6 +1003,12 @@ function switchRoom(room) {
   document.getElementById('logoRoomName').textContent = room === 'conference' ? 'RTC Conference' : 'RTC Showroom';
   // Show/hide banner
   document.getElementById('confBanner').classList.toggle('show', room === 'conference');
+  // Show/hide + reset the public-page Room Type selector
+  const pubRtGroup = document.getElementById('pubRoomTypeGroup');
+  if (pubRtGroup) pubRtGroup.style.display = room === 'conference' ? '' : 'none';
+  const pubRt = document.getElementById('pubRoomType');
+  if (pubRt) pubRt.value = 'Masflex Room';
+  document.getElementById('slotPanel').innerHTML = '<div class="empty-state"><i class="fa-regular fa-calendar fa-2x"></i><p>Click a date to see available time slots.</p></div>';
   // Reload current view data
   const v = App.currentView;
   renderNav();
@@ -1030,9 +1051,16 @@ function loadPublicDashboard() {
 }
 
 function loadPublicCalendar() {
-  api(r_action('getPublicCalendarData'), { month: App.calMonth, year: App.calYear }, function(r) {
+  const isConf = App.currentRoom === 'conference';
+  const roomType = isConf ? (document.getElementById('pubRoomType').value || 'Masflex Room') : '';
+  api(r_action('getPublicCalendarData'), { month: App.calMonth, year: App.calYear, roomType: roomType }, function(r) {
     if (r && r.success) { App.calData = r.data; renderPublicCalendar(); }
   });
+}
+function onPubRoomTypeChange() {
+  loadPublicCalendar();
+  document.getElementById('slotPanel').innerHTML = '<div class="empty-state"><i class="fa-regular fa-calendar fa-2x"></i><p>Click a date to see available time slots.</p></div>';
+  document.querySelectorAll('#calGrid .cal-day').forEach(function(el) { el.classList.remove('cal-selected'); });
 }
 function changeMonth(dir) {
   App.calMonth += dir;
@@ -1073,8 +1101,10 @@ function selectPublicDate(ds) {
 
 function loadPublicSlots(ds) {
   const panel = document.getElementById('slotPanel');
+  const isConf = App.currentRoom === 'conference';
+  const roomType = isConf ? (document.getElementById('pubRoomType').value || 'Masflex Room') : '';
   panel.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
-  api(r_action('getPublicSlots'), { date: ds }, function(r) {
+  api(r_action('getPublicSlots'), { date: ds, roomType: roomType }, function(r) {
     const label = fmtDateLong(ds);
     let h = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div>`;
     if (r.blocked) {
@@ -1247,6 +1277,8 @@ function resetBookingForm() {
   const el2 = document.getElementById('bookPageSubtitle');
   if (el1) el1.textContent = isConf ? 'Book Conference Room' : 'Book Appointment';
   if (el2) el2.textContent = isConf ? 'Reserve the conference room — subject to admin approval' : 'Schedule a showroom visit — subject to admin approval';
+  document.getElementById('bkRoomTypeGroup').style.display = isConf ? '' : 'none';
+  document.getElementById('bkRoomType').value = '';
   document.getElementById('bkDate').value = '';
   document.getElementById('bkStartTime').innerHTML = '<option value="">— Select a date first —</option>';
   document.getElementById('bkStartTime').disabled = true;
@@ -1320,6 +1352,8 @@ function toggleAcMealRemarks() {
 
 function loadBookingSlots() {
   const ds = document.getElementById('bkDate').value;
+  const isConf   = App.currentRoom === 'conference';
+  const roomType = isConf ? document.getElementById('bkRoomType').value : '';
   const startSel = document.getElementById('bkStartTime');
   const endSel   = document.getElementById('bkEndTime');
   const info     = document.getElementById('bookSlotInfo');
@@ -1327,8 +1361,13 @@ function loadBookingSlots() {
   endSel.innerHTML   = '<option value="">—</option>';         endSel.disabled   = true;
   info.innerHTML     = '';
   if (!ds) return;
+  if (isConf && !roomType) {
+    startSel.innerHTML = '<option value="">— Select a room first —</option>';
+    info.innerHTML = '<div class="alert alert-info" style="font-size:12px"><i class="fa-solid fa-circle-info"></i><span>Please select a Room Type to see availability.</span></div>';
+    return;
+  }
 
-  api(r_action('getPublicSlots'), { date: ds }, function(r) {
+  api(r_action('getPublicSlots'), { date: ds, roomType: roomType }, function(r) {
     if (!r || !r.success) {
       startSel.innerHTML = '<option value="">Error — check console</option>';
       info.innerHTML = '<div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> API error: ' + (r && r.message || 'Unknown error') + '</div>';
@@ -1404,15 +1443,20 @@ function doCreateBooking() {
   const mealChecked = document.getElementById('bkMealRequest').checked;
   const mealRemarks = mealChecked ? document.getElementById('bkMealRemarks').value.trim() : '';
   const mealRequest = mealChecked ? ('Yes' + (mealRemarks ? ': ' + mealRemarks : '')) : '';
+  const isConf   = App.currentRoom === 'conference';
+  const roomType = isConf ? document.getElementById('bkRoomType').value : '';
 
   if (!name || !email || !date || !startTime || !endTime || !title || !purpose || !clientName || !guests) {
     showAlert('bookAlert', 'Please fill in all required fields, including start and end time.', 'error'); return;
+  }
+  if (isConf && !roomType) {
+    showAlert('bookAlert', 'Please select a Room Type.', 'error'); return;
   }
   if (mealChecked && !mealRemarks) {
     showAlert('bookAlert', 'Please specify meal remarks when Meal Request is checked.', 'error'); return;
   }
   setBtnLoading('btnBook', true);
-  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest, ccEmails: _bkCcList.join(',') }, function(r) {
+  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest, ccEmails: _bkCcList.join(','), roomType: roomType }, function(r) {
     setBtnLoading('btnBook', false);
     if (r && r.success) {
       toast('Booking submitted! Awaiting admin approval.', 'warn');
@@ -1471,6 +1515,7 @@ function renderBookingCards(id, bookings, showActions) {
         ${statusBadge(b.status)}
       </div>
       <div class="booking-time"><i class="fa-regular fa-clock" style="margin-right:6px"></i>${b.timeRange}</div>
+      ${b.roomType ? `<div class="text-sm" style="color:#1e40af;font-weight:600;margin-bottom:2px"><i class="fa-solid fa-door-open" style="margin-right:5px"></i>${escHtml(b.roomType)}</div>` : ''}
       ${b.title ? `<div class="booking-title">${b.title}</div>` : ''}
       <div class="booking-purpose text-muted">${b.purpose}</div>
       ${b.guests  ? `<div class="booking-remarks"><i class="fa-solid fa-users" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
@@ -1496,6 +1541,7 @@ function userCancel(bookingId) {
   });
 }
 
+var _rsRoomType = '';
 function openReschedule(bookingId) {
   document.getElementById('rsBookingId').value = bookingId;
   document.getElementById('rsDate').value = '';
@@ -1504,6 +1550,8 @@ function openReschedule(bookingId) {
   document.getElementById('rsEndTime').innerHTML = '<option value="">—</option>';
   document.getElementById('rsEndTime').disabled = true;
   App.rescheduleSlots = [];
+  const bk = (App.userBookings || []).find(function(b) { return b.bookingId === bookingId; });
+  _rsRoomType = (bk && bk.roomType) || '';
   showAlert('rescheduleAlert','','');
   openModal('modalReschedule');
 }
@@ -1515,7 +1563,7 @@ function loadRescheduleSlots() {
   startSel.innerHTML = '<option value="">Loading...</option>'; startSel.disabled = true;
   endSel.innerHTML   = '<option value="">—</option>';         endSel.disabled   = true;
   if (!ds) return;
-  api(r_action('getPublicSlots'), { date: ds }, function(r) {
+  api(r_action('getPublicSlots'), { date: ds, roomType: _rsRoomType }, function(r) {
     if (r.blocked) { startSel.innerHTML = '<option value="">Date not available</option>'; showAlert('rescheduleAlert','Date is blocked.','error'); return; }
     App.rsBookedBlocks = r.bookedBlocks || [];
     App.slotConfig     = { openMin: r.openMin||480, closeMin: r.closeMin||1080, slotMin: r.slotMin||30 };
@@ -1620,6 +1668,7 @@ function loadAdminToday() {
           <div class="slot-time">${b.timeRange}</div>${statusBadge(b.status)}
         </div>
         ${b.title ? `<div style="font-weight:700;font-size:13px">${b.title}</div>` : ''}
+        ${b.roomType ? `<div class="cal-badge" style="background:#dbeafe;color:#1e40af;display:inline-block">🏛️ ${escHtml(b.roomType)}</div>` : ''}
         <div style="font-size:13px;color:#4b5563">${b.fullName} · ${b.email}</div>
         <div class="text-sm text-muted">${b.purpose}</div>
         ${b.remarks ? `<div class="text-sm text-muted" style="font-style:italic">${escHtml(b.remarks)}</div>` : ''}
@@ -1681,7 +1730,7 @@ function renderBookingsTable(bookings) {
       <td class="text-sm text-muted" style="white-space:nowrap">${b.bookingId}</td>
       <td class="fw-bold" style="white-space:nowrap">${fmtDate(b.bookingDate)}</td>
       <td class="text-sm" style="white-space:nowrap">${b.timeRange}</td>
-      <td class="fw-bold">${b.title || '—'}</td>
+      <td class="fw-bold">${b.title || '—'}${b.roomType ? `<div class="text-sm text-muted" style="font-weight:400">🏛️ ${escHtml(b.roomType)}</div>` : ''}</td>
       <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button></div></div></td>
       <td class="text-sm text-muted">${b.email}</td>
       <td class="text-sm" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${escHtml(b.purpose)}</td>
@@ -1854,6 +1903,7 @@ function selectAdminDate(ds, bookings) {
         <div class="slot-time">${b.timeRange}</div>${statusBadge(b.status)}
       </div>
       ${b.title ? `<div style="font-weight:700;font-size:13px">${b.title}</div>` : ''}
+      ${b.roomType ? `<div class="cal-badge" style="background:#dbeafe;color:#1e40af;display:inline-block">🏛️ ${escHtml(b.roomType)}</div>` : ''}
       <div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
         ${avatarHtml(b.fullName,'avatar-xs',b.avatar)}
         <div>
@@ -2117,6 +2167,8 @@ function openAdminCreateBooking() {
   if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Create ${isConf ? 'Conference Room' : 'Showroom'} Booking`;
   const noteEl = document.getElementById('acRoomNote');
   if (noteEl) noteEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px"></i>${isConf ? '🏛️ <strong>Conference Room</strong> —' : '🏢 <strong>Showroom</strong> —'} booking will be <strong>auto-confirmed</strong> and a confirmation email sent to the user.`;
+  document.getElementById('acRoomTypeGroup').style.display = isConf ? '' : 'none';
+  document.getElementById('acRoomType').value = '';
   document.getElementById('acEmail').value    = '';
   document.getElementById('acDate').value       = '';
   document.getElementById('acTitle').value      = '';
@@ -2193,9 +2245,17 @@ function lookupAcUser() {
 
 function loadAcSlots() {
   const dateVal = document.getElementById('acDate').value;
+  const isConf   = App.currentRoom === 'conference';
+  const roomType = isConf ? document.getElementById('acRoomType').value : '';
   if (!dateVal) return;
+  if (isConf && !roomType) {
+    document.getElementById('acSlotInfo').textContent = 'Select a Room Type first.';
+    document.getElementById('acStart').innerHTML = '<option value="">Select a room first</option>';
+    document.getElementById('acEnd').innerHTML   = '<option value="">Select a room first</option>';
+    return;
+  }
   document.getElementById('acSlotInfo').textContent = 'Loading slots…';
-  api(r_action('getPublicSlots'), { date: dateVal }, function(r) {
+  api(r_action('getPublicSlots'), { date: dateVal, roomType: roomType }, function(r) {
     const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
     const startSel = document.getElementById('acStart');
     const endSel   = document.getElementById('acEnd');
@@ -2217,10 +2277,12 @@ function loadAcSlots() {
 function updateAcEndTimes() {
   const startVal = document.getElementById('acStart').value;
   const dateVal  = document.getElementById('acDate').value;
+  const isConf   = App.currentRoom === 'conference';
+  const roomType = isConf ? document.getElementById('acRoomType').value : '';
   const endSel   = document.getElementById('acEnd');
   endSel.innerHTML = '<option value="">-- End Time --</option>';
   if (!startVal || !dateVal) return;
-  api(r_action('getPublicSlots'), { date: dateVal }, function(r) {
+  api(r_action('getPublicSlots'), { date: dateVal, roomType: roomType }, function(r) {
     const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
     const startMin = timeStrToMinJs(startVal);
     const CLOSE=18*60, STEP=30;
@@ -2260,7 +2322,10 @@ function doAdminCreateBooking() {
   const mealChecked = document.getElementById('acMealRequest').checked;
   const mealRemarks = mealChecked ? document.getElementById('acMealRemarks').value.trim() : '';
   const mealRequest = mealChecked ? ('Yes' + (mealRemarks ? ': ' + mealRemarks : '')) : '';
+  const isConf   = App.currentRoom === 'conference';
+  const roomType = isConf ? document.getElementById('acRoomType').value : '';
   if (!email)      { showAlert('acAlert','User email is required.','error'); return; }
+  if (isConf && !roomType) { showAlert('acAlert','Please select a Room Type.','error'); return; }
   if (!date)       { showAlert('acAlert','Select a date.','error'); return; }
   if (!start)      { showAlert('acAlert','Select a start time.','error'); return; }
   if (!end)        { showAlert('acAlert','Select an end time.','error'); return; }
@@ -2274,7 +2339,7 @@ function doAdminCreateBooking() {
     userEmail: email, bookingDate: date,
     startTime: start, endTime: end,
     title: title, purpose: purpose, guests: guests, remarks: remarks,
-    clientName: clientName, mealRequest: mealRequest, ccEmails: _acCcList.join(',')
+    clientName: clientName, mealRequest: mealRequest, ccEmails: _acCcList.join(','), roomType: roomType
   }, function(r) {
     setBtnLoading('btnAcSubmit', false);
     if (r && r.success) {
@@ -2393,6 +2458,14 @@ function doAdminCreateBooking() {
         </div>
         <div id="acUserInfo" style="margin-top:6px;font-size:13px;color:#374151;display:none"></div>
       </div>
+      <div class="form-group" id="acRoomTypeGroup" style="display:none">
+        <label>Room Type <span>*</span></label>
+        <select class="form-control" id="acRoomType" onchange="loadAcSlots()">
+          <option value="">— Select room —</option>
+          <option value="Masflex Room">Masflex Room</option>
+          <option value="Cascade Room">Cascade Room</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Date <span>*</span></label>
@@ -2414,7 +2487,7 @@ function doAdminCreateBooking() {
       </div>
       <div class="form-group">
         <label>Agenda <span>*</span></label>
-        <textarea class="form-control auto-resize" id="acPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Describe the purpose of the visit or meeting agenda..."></textarea>
+        <textarea class="form-control auto-resize" id="acPurpose" rows="4" style="min-height:100px;resize:none;overflow:hidden" placeholder="Enumerate the purpose of the visit or meeting agenda..."></textarea>
       </div>
       <div class="form-group">
         <label style="display:flex;align-items:center;justify-content:space-between">
