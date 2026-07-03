@@ -1952,7 +1952,20 @@ function setBtnLoading(id, loading) {
   const btn = document.getElementById(id);
   if (!btn) return;
   btn.disabled = loading;
-  if (loading) { btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<div class="spinner spinner-sm" style="margin:0 auto"></div>'; }
+  if (loading) {
+    btn.dataset.orig = btn.innerHTML;
+    const tick = Date.now().toString();
+    btn.dataset.loadTick = tick;
+    btn.innerHTML = '<div class="spinner spinner-sm"></div><span>Please wait…</span>';
+    // If it's still going after 6s (e.g. Apps Script cold start), reassure
+    // the user it's still working instead of looking frozen.
+    setTimeout(function() {
+      if (btn.dataset.loadTick === tick && btn.disabled) {
+        const span = btn.querySelector('span');
+        if (span) span.textContent = 'Still connecting…';
+      }
+    }, 6000);
+  }
   else if (btn.dataset.orig) btn.innerHTML = btn.dataset.orig;
 }
 
