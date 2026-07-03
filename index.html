@@ -483,6 +483,16 @@ tr.row-pending:hover td { background: #fef9c3; }
           <p class="form-hint">Required. One name per line. These will appear in your calendar invite.</p>
         </div>
         <div class="form-group">
+          <label>CC Others <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
+          <div style="display:flex;gap:8px">
+            <input class="form-control" type="email" id="bkCcInput" placeholder="Search registered users or type any email…" list="bkUserList" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addBkCc();}">
+            <datalist id="bkUserList"></datalist>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addBkCc()" style="white-space:nowrap">+ Add</button>
+          </div>
+          <div id="bkCcChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+          <p class="form-hint">They'll be copied on the booking request and confirmation emails.</p>
+        </div>
+        <div class="form-group">
           <label>Remarks <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
           <textarea class="form-control auto-resize" id="bkRemarks" rows="3" style="min-height:80px;resize:none;overflow:hidden" placeholder="Additional notes or special requests.&#10;&#10;Press Enter to add a new line."></textarea>
         </div>
@@ -1253,6 +1263,43 @@ function resetBookingForm() {
   document.getElementById('bookSlotInfo').innerHTML = '';
   showAlert('bookAlert','','');
   App.bookedBlocks = [];
+  _bkCcList = [];
+  renderBkCcChips();
+  loadBkUserList();
+}
+
+// ── CC OTHERS (user-side booking form) ────────────────────────
+var _bkUsers = [];
+var _bkCcList = [];
+function loadBkUserList() {
+  if (_bkUsers.length) return;
+  api('getRegisteredUsers', {}, function(r) {
+    if (r && r.success) {
+      _bkUsers = r.users;
+      document.getElementById('bkUserList').innerHTML = r.users.map(function(u) { return '<option value="'+u.email+'">'+u.fullName+'</option>'; }).join('');
+    }
+  });
+}
+function addBkCc() {
+  const input = document.getElementById('bkCcInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { showAlert('bookAlert','Enter a valid email address to CC.','error'); return; }
+  const low = val.toLowerCase();
+  if (_bkCcList.some(function(e) { return e.toLowerCase() === low; })) { input.value=''; return; }
+  _bkCcList.push(val);
+  input.value = '';
+  renderBkCcChips();
+}
+function removeBkCc(email) {
+  _bkCcList = _bkCcList.filter(function(e) { return e !== email; });
+  renderBkCcChips();
+}
+function renderBkCcChips() {
+  document.getElementById('bkCcChips').innerHTML = _bkCcList.map(function(e) {
+    return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3f4f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#374151">'+escHtml(e)
+      +'<button type="button" onclick="removeBkCc(\''+e.replace(/'/g,"\\'")+'\')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-weight:700;padding:0;line-height:1">&times;</button></span>';
+  }).join('');
 }
 
 function toggleMealRemarks() {
@@ -1365,7 +1412,7 @@ function doCreateBooking() {
     showAlert('bookAlert', 'Please specify meal remarks when Meal Request is checked.', 'error'); return;
   }
   setBtnLoading('btnBook', true);
-  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest }, function(r) {
+  api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest, ccEmails: _bkCcList.join(',') }, function(r) {
     setBtnLoading('btnBook', false);
     if (r && r.success) {
       toast('Booking submitted! Awaiting admin approval.', 'warn');
@@ -2085,6 +2132,8 @@ function openAdminCreateBooking() {
   showAlert('acAlert','','');
   document.getElementById('acStart').innerHTML = '<option value="">Select date first</option>';
   document.getElementById('acEnd').innerHTML   = '<option value="">Select date first</option>';
+  _acCcList = [];
+  renderAcCcChips();
   // Pre-populate datalist with registered users
   if (_acUsers.length === 0) {
     api('getRegisteredUsers', {}, function(r) {
@@ -2098,6 +2147,32 @@ function openAdminCreateBooking() {
   // Set min date to today
   document.getElementById('acDate').min = new Date().toISOString().slice(0,10);
   document.getElementById('modalAdminCreate').classList.remove('hidden');
+}
+
+// ── CC OTHERS (admin create-booking modal) ────────────────────
+// Reuses the acUserList datalist already populated above with
+// registered users — one <datalist> can back more than one input.
+var _acCcList = [];
+function addAcCc() {
+  const input = document.getElementById('acCcInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { showAlert('acAlert','Enter a valid email address to CC.','error'); return; }
+  const low = val.toLowerCase();
+  if (_acCcList.some(function(e) { return e.toLowerCase() === low; })) { input.value=''; return; }
+  _acCcList.push(val);
+  input.value = '';
+  renderAcCcChips();
+}
+function removeAcCc(email) {
+  _acCcList = _acCcList.filter(function(e) { return e !== email; });
+  renderAcCcChips();
+}
+function renderAcCcChips() {
+  document.getElementById('acCcChips').innerHTML = _acCcList.map(function(e) {
+    return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3f4f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#374151">'+escHtml(e)
+      +'<button type="button" onclick="removeAcCc(\''+e.replace(/'/g,"\\'")+'\')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-weight:700;padding:0;line-height:1">&times;</button></span>';
+  }).join('');
 }
 
 function lookupAcUser() {
@@ -2199,7 +2274,7 @@ function doAdminCreateBooking() {
     userEmail: email, bookingDate: date,
     startTime: start, endTime: end,
     title: title, purpose: purpose, guests: guests, remarks: remarks,
-    clientName: clientName, mealRequest: mealRequest
+    clientName: clientName, mealRequest: mealRequest, ccEmails: _acCcList.join(',')
   }, function(r) {
     setBtnLoading('btnAcSubmit', false);
     if (r && r.success) {
@@ -2352,6 +2427,15 @@ function doAdminCreateBooking() {
         <label>Guest Names <span>*</span></label>
         <textarea class="form-control auto-resize" id="acGuests" rows="3" style="min-height:80px;resize:none;overflow:hidden" placeholder="Guest names, one per line"></textarea>
         <p class="form-hint">Required. One name per line.</p>
+      </div>
+      <div class="form-group">
+        <label>CC Others <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
+        <div style="display:flex;gap:8px">
+          <input class="form-control" type="email" id="acCcInput" placeholder="Search registered users or type any email…" list="acUserList" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addAcCc();}">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addAcCc()" style="white-space:nowrap">+ Add</button>
+        </div>
+        <div id="acCcChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+        <p class="form-hint">They'll be copied on the booking request and confirmation emails.</p>
       </div>
       <div class="form-group">
         <label>Remarks <span style="color:var(--gray-400);font-weight:400">(optional)</span></label>
