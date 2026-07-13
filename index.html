@@ -8,7 +8,6 @@
 <style>
 /* ── Reset & Variables ─────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  
 :root {
   --maroon:      #800000;
   --maroon-dark: #5c0000;
@@ -74,6 +73,10 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 /* ── Inline link button ─────────────────────────────────────── */
 .btn-link-plain { background: none; border: none; padding: 0; cursor: pointer; color: #1f2937; font-weight: 700; font-size: inherit; text-align: left; text-decoration: underline dotted; text-underline-offset: 2px; }
 .btn-link-plain:hover { color: var(--maroon); }
+/* ── Agenda / Remarks clamp (table cells) ───────────────────── */
+.cell-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.cell-clamp:hover { color: var(--maroon); }
+.cell-clamp-hint { display: block; font-size: 11px; color: #9ca3af; font-weight: 600; margin-top: 2px; }
 /* ── Password Eye ───────────────────────────────────────────── */
 .pw-wrap { position: relative; }
 .pw-wrap .form-control { padding-right: 40px; }
@@ -762,6 +765,29 @@ tr.row-pending:hover td { background: #fef9c3; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalStatus')">Cancel</button>
       <button class="btn btn-primary" id="btnUpdateStatus" onclick="doUpdateStatus()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: VIEW USER PROFILE ────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalViewUser">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><h3><i class="fa-solid fa-user"></i> User Profile</h3><button class="modal-close" onclick="closeModal('modalViewUser')">&times;</button></div>
+    <div class="modal-body">
+      <div id="vuLoading" style="text-align:center;padding:32px 0"><i class="fa-solid fa-spinner fa-spin" style="font-size:22px;color:#800000"></i></div>
+      <div id="vuContent" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: VIEW FULL AGENDA ─────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalViewAgenda">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><h3><i class="fa-solid fa-list-check"></i> Full Agenda</h3><button class="modal-close" onclick="closeModal('modalViewAgenda')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Booking</label><p class="fw-bold" id="vaBookingDisplay" style="font-size:13px;color:#800000"></p></div>
+      <hr class="divider">
+      <p id="vaContent" style="font-size:13px;color:#374151;white-space:pre-wrap;word-break:break-word"></p>
     </div>
   </div>
 </div>
@@ -1744,7 +1770,7 @@ function renderBookingsTable(bookings) {
       <td class="fw-bold">${b.title || '—'}${b.roomType ? `<div class="text-sm text-muted" style="font-weight:400">🏛️ ${escHtml(b.roomType)}</div>` : ''}</td>
       <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button></div></div></td>
       <td class="text-sm text-muted">${b.email}</td>
-      <td class="text-sm" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${escHtml(b.purpose)}</td>
+      <td class="text-sm" style="max-width:160px"><div class="cell-clamp" onclick="viewFullAgenda('${b.bookingId}')">${escHtml(b.purpose)}</div>${b.purpose && b.purpose.length > 90 ? '<span class="cell-clamp-hint">View more…</span>' : ''}</td>
       <td class="text-sm" style="max-width:130px">${b.guests ? escHtml(b.guests).replace(/\n/g,'<br>') : '—'}</td>
       <td class="text-sm text-muted" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${b.remarks ? escHtml(b.remarks) : '—'}</td>
       <td>${statusBadge(b.status)}</td>
@@ -1767,6 +1793,16 @@ function renderBookingsTable(bookings) {
 }
 
 function goPage(p) { currentPage = p; renderBookingsTable(filteredBookings); }
+
+// ── ADMIN: VIEW FULL AGENDA (from table row click) ─────────────
+function viewFullAgenda(bookingId) {
+  const source = (typeof filteredBookings !== 'undefined' && filteredBookings) || (App.allBookings || []);
+  const b = source.find(function(x) { return x.bookingId === bookingId; }) || (App.allBookings || []).find(function(x) { return x.bookingId === bookingId; });
+  if (!b) return;
+  document.getElementById('vaBookingDisplay').textContent = b.bookingId + ' — ' + b.fullName + ' (' + fmtDate(b.bookingDate) + ', ' + b.timeRange + ')';
+  document.getElementById('vaContent').textContent = b.purpose || '—';
+  openModal('modalViewAgenda');
+}
 
 // ── ADMIN: VIEW USER PROFILE ──────────────────────────────────
 function viewUserProfile(email) {
