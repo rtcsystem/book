@@ -740,6 +740,35 @@ tr.row-pending:hover td { background: #fef9c3; }
   </div>
 </div>
 
+<!-- ── MODAL: EDIT BOOKING DETAILS ─────────────────────────────
+     Opened by either the booker (from their own "My Bookings" card)
+     or an admin (from the Admin All Bookings table, e.g. for a
+     booking they created on someone's behalf). Only edits
+     title/agenda/client/guests/remarks/meal — date/time/room stay
+     untouched (that's what Reschedule is for). Saving always sends
+     the booking back to Pending for re-approval. ── -->
+<div class="modal-overlay hidden" id="modalEditDetails">
+  <div class="modal-box">
+    <div class="modal-header"><h3><i class="fa-solid fa-file-pen"></i> Edit Booking Details</h3><button class="modal-close" onclick="closeModal('modalEditDetails')">&times;</button></div>
+    <div class="modal-body">
+      <div id="editDetailsAlert"></div>
+      <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i><span>Saving returns this booking to <strong>Pending</strong> and needs admin re-approval. Date, time, and room are not changed here — use Reschedule for that.</span></div>
+      <input type="hidden" id="edBookingId">
+      <input type="hidden" id="edIsAdmin">
+      <div class="form-group"><label>Title</label><input class="form-control" type="text" id="edTitle" maxlength="120"></div>
+      <div class="form-group"><label>Agenda / Purpose <span>*</span></label><textarea class="form-control" id="edPurpose" rows="3" required></textarea></div>
+      <div class="form-group"><label>Client Name <span>*</span></label><input class="form-control" type="text" id="edClientName" required></div>
+      <div class="form-group"><label>Guests <span>*</span></label><textarea class="form-control" id="edGuests" rows="2" required></textarea></div>
+      <div class="form-group"><label>Remarks</label><textarea class="form-control" id="edRemarks" rows="2"></textarea></div>
+      <div class="form-group"><label>Meal Request</label><input class="form-control" type="text" id="edMealRequest"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalEditDetails')">Cancel</button>
+      <button class="btn btn-primary" onclick="doSaveEditDetails()" id="btnSaveEditDetails"><i class="fa-solid fa-floppy-disk"></i> Save &amp; Resubmit</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MODAL: STATUS UPDATE ────────────────────────────────── -->
 <div class="modal-overlay hidden" id="modalStatus">
   <div class="modal-box" style="max-width:440px">
@@ -1021,6 +1050,7 @@ const ROOM_ACTION_MAP = {
   'getUserBookings':       'getUserConferenceBookings',
   'cancelBooking':         'cancelConferenceBooking',
   'rescheduleBooking':     'rescheduleConferenceBooking',
+  'updateBookingDetails':  'updateConferenceBookingDetails',
   'getAdminAllBookings':   'getAdminConferenceBookings',
   'updateBookingStatus':   'updateConferenceBookingStatus',
   'getAdminCalendarData':  'getAdminConferenceCalendarData',
@@ -1516,7 +1546,7 @@ function switchUserTab(tab) {
 }
 
 function loadUserBookings() {
-  api(r_action('getUserBookings'), { userId: App.user.userId }, function(r) {
+  api(r_action('getUserBookings'), { userId: App.user.userId, email: App.user.email }, function(r) {
     App.userBookings = (r && r.success) ? r.bookings : [];
     renderUserUpcoming();
     renderUserHistory();
@@ -1546,7 +1576,7 @@ function renderBookingCards(id, bookings, showActions) {
     h += `<div class="booking-card${isPending?' pending-card':''}">
       <div class="booking-card-header">
         <div>
-          <div class="booking-id">ID: ${b.bookingId}</div>
+          <div class="booking-id">ID: ${b.bookingId}${b.isCc ? ' <span style="color:#1e40af;font-weight:700">· CC\'d — booked by ' + escHtml(b.fullName) + '</span>' : ''}</div>
           <div class="booking-date"><i class="fa-solid fa-calendar" style="margin-right:6px"></i>${fmtDate(b.bookingDate)}</div>
         </div>
         ${statusBadge(b.status)}
@@ -1561,6 +1591,7 @@ function renderBookingCards(id, bookings, showActions) {
       ${showActions && (b.status === 'Confirmed' || b.status === 'Pending') ? `
       <div class="booking-actions">
         ${b.status === 'Confirmed' ? `<button class="btn btn-outline btn-sm" onclick="openReschedule('${b.bookingId}')"><i class="fa-solid fa-calendar-pen"></i> Reschedule</button>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="openEditDetails('${b.bookingId}', false)"><i class="fa-solid fa-file-pen"></i> Edit Details</button>
         <button class="btn btn-danger btn-sm" onclick="userCancel('${b.bookingId}')"><i class="fa-solid fa-xmark"></i> Cancel</button>
       </div>` : ''}
     </div>`;
@@ -1645,6 +1676,71 @@ function doReschedule() {
     if (r && r.success) { toast(r.message, 'warn'); closeModal('modalReschedule'); loadUserBookings(); }
     else showAlert('rescheduleAlert', (r && r.message) || 'Failed.', 'error');
   }, function() { setBtnLoading('btnReschedule', false); showAlert('rescheduleAlert','Network error. Try again.','error'); });
+}
+
+// Opens the Edit Details modal, pre-filled from whichever booking list
+// is already loaded in memory. isAdmin=true means it was opened from
+// the Admin All Bookings table (looks up filteredBookings/App.allBookings
+// and saves with adminUsername); isAdmin=false means it was opened from
+// the employee's own "My Bookings" card (looks up App.userBookings and
+// saves with userId, permission-checked server-side too).
+function openEditDetails(bookingId, isAdmin) {
+  var b = null;
+  if (isAdmin) {
+    var source = (typeof filteredBookings !== 'undefined' && filteredBookings) || (App.allBookings || []);
+    b = source.find(function(x) { return x.bookingId === bookingId; }) || (App.allBookings || []).find(function(x) { return x.bookingId === bookingId; });
+  } else {
+    b = (App.userBookings || []).find(function(x) { return x.bookingId === bookingId; });
+  }
+  if (!b) { toast('Booking not found.', 'error'); return; }
+  if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'No-show') {
+    toast('This booking can no longer be edited (' + b.status + ').', 'error');
+    return;
+  }
+  document.getElementById('edBookingId').value    = bookingId;
+  document.getElementById('edIsAdmin').value       = isAdmin ? '1' : '0';
+  document.getElementById('edTitle').value         = b.title || '';
+  document.getElementById('edPurpose').value       = b.purpose || '';
+  document.getElementById('edClientName').value    = b.clientName || '';
+  document.getElementById('edGuests').value        = b.guests || '';
+  document.getElementById('edRemarks').value       = b.remarks || '';
+  document.getElementById('edMealRequest').value   = b.mealRequest || '';
+  showAlert('editDetailsAlert', '', '');
+  openModal('modalEditDetails');
+}
+
+function doSaveEditDetails() {
+  var bookingId    = document.getElementById('edBookingId').value;
+  var isAdmin      = document.getElementById('edIsAdmin').value === '1';
+  var title        = document.getElementById('edTitle').value.trim();
+  var purpose      = document.getElementById('edPurpose').value.trim();
+  var clientName   = document.getElementById('edClientName').value.trim();
+  var guests       = document.getElementById('edGuests').value.trim();
+  var remarks      = document.getElementById('edRemarks').value.trim();
+  var mealRequest  = document.getElementById('edMealRequest').value.trim();
+  if (!purpose || !clientName || !guests) {
+    showAlert('editDetailsAlert', 'Agenda/Purpose, Client Name, and Guests are required.', 'error');
+    return;
+  }
+  var payload = { bookingId: bookingId, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest };
+  if (isAdmin) payload.adminUsername = App.admin.username;
+  else payload.userId = App.user.userId;
+
+  setBtnLoading('btnSaveEditDetails', true);
+  api(r_action('updateBookingDetails'), payload, function(r) {
+    setBtnLoading('btnSaveEditDetails', false);
+    if (r && r.success) {
+      toast(r.message, 'warn');
+      closeModal('modalEditDetails');
+      if (isAdmin) { loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
+      else { loadUserBookings(); }
+    } else {
+      showAlert('editDetailsAlert', (r && r.message) || 'Failed.', 'error');
+    }
+  }, function() {
+    setBtnLoading('btnSaveEditDetails', false);
+    showAlert('editDetailsAlert', 'Network error. Try again.', 'error');
+  });
 }
 
 // ── ADMIN ─────────────────────────────────────────────────────
@@ -1777,7 +1873,8 @@ function renderBookingsTable(bookings) {
       <td><div class="td-actions">
         ${isPending ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${b.bookingId}')"><i class="fa-solid fa-check"></i></button>
         <button class="btn btn-danger btn-sm" onclick="quickReject('${b.bookingId}')"><i class="fa-solid fa-xmark"></i></button>` : ''}
-        <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${b.bookingId}','${b.status}','${b.fullName}','${fmtDate(b.bookingDate)}','${b.timeRange}')"><i class="fa-solid fa-pen-to-square"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${b.bookingId}','${b.status}','${b.fullName}','${fmtDate(b.bookingDate)}','${b.timeRange}')" title="Update Status"><i class="fa-solid fa-pen-to-square"></i></button>
+        ${b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No-show' ? `<button class="btn btn-ghost btn-sm" onclick="openEditDetails('${b.bookingId}', true)" title="Edit Details"><i class="fa-solid fa-file-pen"></i></button>` : ''}
       </div></td>
     </tr>`;
   }).join('');
@@ -1977,7 +2074,7 @@ function loadActivityLogs() {
     const tbody = document.getElementById('logsTableBody');
     const logs  = (r && r.success) ? r.logs : [];
     if (logs.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">No logs yet.</td></tr>'; return; }
-    const colors = { ADMIN_LOGIN:'#166534', ADMIN_LOGIN_FAILED:'#991b1b', USER_REGISTERED:'#1e40af', USER_LOGIN:'#1e40af', BOOKING_CREATED:'#d97706', BOOKING_CANCELLED:'#991b1b', BOOKING_RESCHEDULED:'#92400e', BOOKING_STATUS_UPDATED:'#6b21a8' };
+    const colors = { ADMIN_LOGIN:'#166534', ADMIN_LOGIN_FAILED:'#991b1b', USER_REGISTERED:'#1e40af', USER_LOGIN:'#1e40af', USER_LOGIN_FAILED:'#991b1b', BOOKING_CREATED:'#d97706', BOOKING_CANCELLED:'#991b1b', BOOKING_RESCHEDULED:'#92400e', BOOKING_DETAILS_UPDATED:'#92400e', BOOKING_STATUS_UPDATED:'#6b21a8', CONF_BOOKING_CREATED:'#d97706', CONF_BOOKING_CANCELLED:'#991b1b', CONF_BOOKING_RESCHEDULED:'#92400e', CONF_BOOKING_DETAILS_UPDATED:'#92400e', CONF_STATUS_UPDATED:'#6b21a8', PASSWORD_CHANGED:'#166534', ADMIN_PASSWORD_CHANGED:'#166534' };
     tbody.innerHTML = logs.map(function(l) {
       return `<tr><td class="text-sm text-muted">${fmtTs(l.timestamp)}</td><td class="text-sm">${l.actor}</td><td><span style="color:${colors[l.action]||'#1f2937'};font-size:11px;font-weight:700">${l.action}</span></td><td class="text-sm text-muted">${l.details}</td></tr>`;
     }).join('');
