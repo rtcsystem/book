@@ -48,6 +48,7 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 .logo-text b { display: block; font-size: 15px; font-weight: 700; line-height: 1.2; }
 .logo-text span { font-size: 11px; opacity: .8; }
 .header-nav { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.header-avatar-slot { display: flex; align-items: center; flex-shrink: 0; }
 .nav-btn { background: transparent; border: none; color: rgba(255,255,255,.85); padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: var(--font); transition: background .15s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .nav-btn:hover { background: rgba(255,255,255,.15); color: var(--white); }
 .nav-btn.active { background: rgba(255,255,255,.22); color: var(--white); font-weight: 600; }
@@ -61,8 +62,18 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 .avatar-lg { width: 72px; height: 72px; font-size: 26px; border: 3px solid var(--maroon); cursor: default; }
 .avatar-xs { width: 30px; height: 30px; font-size: 11px; border: none; flex-shrink: 0; }
 .avatar-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.9); font-size: 13px; border-radius: 6px; padding: 4px 8px; transition: background .15s; }
-.avatar-btn:hover { background: rgba(255,255,255,.15); }
+.avatar-btn:hover, .avatar-btn.open { background: rgba(255,255,255,.15); }
 .avatar-btn-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar-menu-wrap { position: relative; }
+.avatar-menu-chevron { font-size: 10px; opacity: .7; transition: transform .15s; }
+.avatar-btn.open .avatar-menu-chevron { transform: rotate(180deg); }
+.avatar-menu { position: absolute; top: calc(100% + 8px); right: 0; background: var(--white); border-radius: 10px; box-shadow: var(--shadow-lg); min-width: 190px; padding: 6px; z-index: 150; display: none; }
+.avatar-menu.open { display: block; animation: modalIn .15s ease; }
+.avatar-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; text-align: left; padding: 9px 10px; border-radius: 7px; font-size: 13px; font-family: var(--font); color: var(--gray-800); cursor: pointer; transition: background .12s; }
+.avatar-menu-item:hover { background: var(--gray-100); }
+.avatar-menu-item.danger { color: #b91c1c; }
+.avatar-menu-item i { width: 16px; text-align: center; opacity: .75; }
+.avatar-menu-divider { height: 1px; background: var(--gray-200); margin: 5px 4px; }
 /* ── Room Switcher ──────────────────────────────────────────── */
 .room-switcher { display:flex; background:rgba(255,255,255,.15); border-radius:20px; padding:3px; gap:2px; }
 .room-btn { background:none; border:none; cursor:pointer; padding:5px 14px; border-radius:16px; font-size:12px; font-weight:600; color:rgba(255,255,255,.75); transition:all .15s; white-space:nowrap; }
@@ -276,6 +287,12 @@ tr.row-pending:hover td { background: #fef9c3; }
 .spinner { width: 44px; height: 44px; border: 4px solid var(--gray-200); border-top-color: var(--maroon); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+/* ── Booking submit progress bar ──────────────────────────────── */
+.book-submit-wrap { position: relative; }
+.book-submit-progress { height: 3px; border-radius: 0 0 8px 8px; overflow: hidden; margin-top: -3px; background: transparent; }
+.book-submit-progress.show { background: var(--maroon-lite, #f3d9d9); }
+.book-submit-progress.show::after { content: ''; display: block; height: 100%; width: 35%; background: var(--maroon); animation: book-submit-slide 1.1s ease-in-out infinite; }
+@keyframes book-submit-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(385%); } }
 
 /* ── Global system loader (RTC Booking System) ───────────────────
    Shown inside #loadingOverlay for every api() call that doesn't opt
@@ -466,11 +483,99 @@ tr.row-pending:hover td { background: #fef9c3; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 14px; gap: 10px; }
   .stat-info h3 { font-size: 22px; }
-  .header-inner { height: auto; min-height: 56px; flex-wrap: wrap; padding: 8px 12px; row-gap: 6px; }
+  /* Row 1 (always visible, pinned): logo -- avatar, Help.
+     Row 2 (scrollable): room switcher + primary nav buttons — this avoids
+     the old behavior of everything wrapping into a messy multi-row stack. */
+  .header-inner { height: auto; min-height: 56px; flex-wrap: wrap; padding: 8px 12px; row-gap: 8px; gap: 8px; }
   .logo-text span { display: none; }
-  .header-nav { width: 100%; margin-left: 0; justify-content: flex-start; }
+  .logo { order: 1; }
+  .header-avatar-slot { order: 2; margin-left: auto; }
+  .header-help-btn { order: 3; margin-left: 0 !important; }
+  .header-nav {
+    order: 4; flex-basis: 100%; width: 100%; margin-left: 0; justify-content: flex-start;
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
+  }
+  .header-nav::-webkit-scrollbar { display: none; }
+  .header-nav > * { flex-shrink: 0; }
   .avatar-btn-name { display: none; }
-  .nav-btn { padding: 6px 10px; font-size: 12px; }
+  .nav-btn { padding: 8px 10px; font-size: 12px; }
+  .room-btn { padding: 7px 12px; }
+  .cal-nav-btn { width: 38px; height: 38px; }
+  .avatar-menu { right: -4px; min-width: 170px; }
+  /* Modals feel more native as a bottom sheet on small screens */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-box { max-width: 100%; width: 100%; max-height: 88vh; border-radius: 16px 16px 0 0; animation: modalInUp .2s ease; }
+  .modal-header { padding: 16px 18px; }
+  .modal-body   { padding: 18px; }
+  .modal-footer { padding: 14px 18px; flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; }
+}
+@keyframes modalInUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@media (max-width: 360px) {
+  .cal-grid { gap: 3px; }
+  .cal-day { min-height: 38px; padding: 3px; }
+  .cal-day-num { font-size: 11px; }
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Availability Assistant (chatbot) ──────────────────────────── */
+.chatbot-wrap { position: fixed; right: 20px; bottom: 20px; z-index: 140; }
+.chatbot-bubble { width: 56px; height: 56px; border-radius: 50%; background: transparent; color: #fff; border: none; font-size: 22px; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+.chatbot-bubble:hover { transform: scale(1.06); }
+.chatbot-bubble.hidden-x { display: none; }
+/* ── Harry's logo (custom cartoon face) ────────────────────────── */
+.harry-logo { position: relative; display: inline-block; overflow: hidden; border-radius: 50%; flex-shrink: 0; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+.harry-logo-canvas { width: 350px; height: 350px; background-color: #ff7675; border: 8px solid #1e272e; border-radius: 50%; position: absolute; top: 0; left: 0; transform-origin: top left; box-sizing: border-box; overflow: hidden; }
+.harry-logo-face { position: absolute; top: 85px; left: 50%; transform: translateX(-50%); width: 170px; height: 200px; background-color: #ffd2a1; border: 6px solid #1e272e; border-radius: 85px 85px 75px 75px; z-index: 2; box-sizing: border-box; }
+.harry-logo-ear { position: absolute; top: 140px; width: 35px; height: 45px; background-color: #ffd2a1; border: 6px solid #1e272e; border-radius: 50%; z-index: 1; box-sizing: border-box; }
+.harry-logo-ear.left { left: 70px; transform: rotate(-15deg); border-right: none; }
+.harry-logo-ear.right { right: 70px; transform: rotate(15deg); border-left: none; }
+.harry-logo-hair { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 182px; height: 95px; background-color: #2d3436; border: 6px solid #1e272e; border-radius: 90px 90px 45px 45px; z-index: 3; box-sizing: border-box; }
+.harry-logo-eyebrows { position: absolute; top: 65px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 5; }
+.harry-logo-eyebrow { width: 58px; height: 18px; background-color: #2d3436; border: 3px solid #1e272e; border-radius: 4px; box-sizing: border-box; }
+.harry-logo-eyebrow.left { transform: rotate(28deg); }
+.harry-logo-eyebrow.right { transform: rotate(-28deg); }
+.harry-logo-eyes { position: absolute; top: 82px; width: 100%; display: flex; justify-content: space-between; padding: 0 28px; box-sizing: border-box; z-index: 4; }
+.harry-logo-eye { width: 42px; height: 20px; background-color: #fff; border: 5px solid #1e272e; border-radius: 50% 50% 10% 10%; position: relative; overflow: hidden; box-sizing: border-box; }
+.harry-logo-pupil { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 18px; height: 18px; background-color: #1e272e; border-radius: 50%; }
+.harry-logo-nose { position: absolute; top: 105px; left: 50%; transform: translateX(-50%); width: 18px; height: 24px; border-right: 5px solid #1e272e; border-bottom: 5px solid #1e272e; border-radius: 0 0 8px 0; z-index: 4; }
+.harry-logo-mouth { position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%) rotate(5deg); width: 72px; height: 32px; z-index: 4; }
+.harry-logo-smirk { width: 100%; height: 100%; border-bottom: 6px solid #1e272e; border-radius: 0 0 50% 15%; }
+.chatbot-panel { position: absolute; right: 0; bottom: 70px; width: 340px; max-width: calc(100vw - 32px); height: 460px; max-height: 70vh; background: var(--white); border-radius: 14px; box-shadow: var(--shadow-lg); display: none; flex-direction: column; overflow: hidden; }
+.chatbot-panel.open { display: flex; animation: modalIn .18s ease; }
+.chatbot-header { background: var(--maroon); color: #fff; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.chatbot-header-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.chatbot-close { background: none; border: none; color: rgba(255,255,255,.85); cursor: pointer; font-size: 16px; padding: 2px; }
+.chatbot-close:hover { color: #fff; }
+.chatbot-help-btn { background: rgba(255,255,255,.15); border: none; color: #fff; cursor: pointer; font-size: 10.5px; font-weight: 700; padding: 5px 9px; border-radius: 20px; display: flex; align-items: center; gap: 5px; white-space: nowrap; transition: background .15s; }
+.chatbot-help-btn:hover { background: rgba(255,255,255,.28); }
+.chatbot-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--gray-50); }
+.chat-msg { max-width: 88%; font-size: 12.5px; line-height: 1.5; padding: 9px 12px; border-radius: 12px; }
+.chat-msg-bot  { align-self: flex-start; background: var(--white); border: 1px solid var(--gray-200); border-bottom-left-radius: 3px; color: var(--gray-800); }
+.chat-msg-user { align-self: flex-end; background: var(--maroon); color: #fff; border-bottom-right-radius: 3px; }
+.chat-quick-replies { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chat-chip { background: var(--maroon-lite, #f3d9d9); color: var(--maroon); border: none; border-radius: 20px; padding: 6px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: background .15s; }
+.chat-chip:hover { background: #f4b8b8; }
+.chat-slot-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.chat-slot-chip { background: var(--green-lite, #dcfce7); color: #166534; border-radius: 8px; padding: 3px 8px; font-size: 11px; font-weight: 700; }
+.chat-date-row { display: flex; gap: 6px; margin-top: 8px; }
+.chat-date-row input { flex: 1; border: 1px solid var(--gray-200); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: var(--font); }
+.chat-date-row button { background: var(--maroon); color: #fff; border: none; border-radius: 8px; padding: 0 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.chat-typing { align-self: flex-start; display: flex; gap: 4px; padding: 10px 12px; background: var(--white); border: 1px solid var(--gray-200); border-radius: 12px; border-bottom-left-radius: 3px; }
+.chat-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--gray-400); animation: chat-typing-bounce 1.1s infinite ease-in-out; }
+.chat-typing span:nth-child(2) { animation-delay: .15s; }
+.chat-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes chat-typing-bounce { 0%,60%,100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+.chatbot-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--gray-200); flex-shrink: 0; background: var(--white); }
+.chatbot-input-row input { flex: 1; border: 1px solid var(--gray-200); border-radius: 20px; padding: 9px 14px; font-size: 12.5px; font-family: var(--font); }
+.chatbot-input-row input:focus { outline: none; border-color: var(--maroon); }
+.chatbot-input-row button { width: 36px; height: 36px; border-radius: 50%; background: var(--maroon); color: #fff; border: none; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+@media (max-width: 480px) {
+  .chatbot-wrap { right: 14px; bottom: 14px; }
+  .chatbot-panel { width: calc(100vw - 28px); height: 68vh; bottom: 66px; }
 }
 </style>
 </head>
@@ -500,7 +605,8 @@ tr.row-pending:hover td { background: #fef9c3; }
       <div class="logo-text"><b id="logoRoomName">RTC Showroom</b><span>Booking System</span></div>
     </div>
     <nav class="header-nav" id="headerNav"></nav>
-    <button class="nav-btn" onclick="openHelpModal()" title="Help &amp; FAQ" style="margin-left:6px"><i class="fa-solid fa-circle-question"></i> Help</button>
+    <div class="header-avatar-slot" id="headerAvatarSlot"></div>
+    <button class="nav-btn header-help-btn" onclick="openHelpModal()" title="Help &amp; FAQ" style="margin-left:6px"><i class="fa-solid fa-circle-question"></i> Help</button>
   </div>
 </header>
 <div class="conf-banner" id="confBanner">
@@ -588,7 +694,7 @@ tr.row-pending:hover td { background: #fef9c3; }
           </div>
           <button class="btn btn-primary btn-full" onclick="doAdminLogin()" id="btnAdminLogin"><i class="fa-solid fa-shield-halved"></i> Admin Login</button>
         </div>
-        <div class="auth-switch">No account yet? <a onclick="showView('register')">Register here</a></div>
+        <div class="auth-switch">No account yet? <a onclick="goToPortal()">Register on Portal</a></div>
       </div>
     </div>
   </div>
@@ -724,7 +830,11 @@ tr.row-pending:hover td { background: #fef9c3; }
           <textarea class="form-control auto-resize" id="bkMealRemarks" rows="2" style="min-height:60px;resize:none;overflow:hidden" placeholder="Specify meal type, dietary requirements, number of pax..."></textarea>
         </div>
         <div class="alert alert-warn" style="margin-bottom:16px"><i class="fa-solid fa-clock"></i><span>Your booking will be <strong>Pending</strong> until approved by the admin. You'll receive an email once confirmed.</span></div>
-        <button class="btn btn-primary btn-full" onclick="doCreateBooking()" id="btnBook"><i class="fa-solid fa-paper-plane"></i> Submit Booking Request</button>
+        <div id="bookAlertBottom"></div>
+        <div class="book-submit-wrap">
+          <button class="btn btn-primary btn-full" onclick="doCreateBooking()" id="btnBook"><i class="fa-solid fa-paper-plane"></i> Submit Booking Request</button>
+          <div class="book-submit-progress" id="bookSubmitProgress"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1179,6 +1289,23 @@ function toast(msg, type) {
 }
 function showAlert(id, msg, type) { const el = document.getElementById(id); if (el) el.innerHTML = msg ? `<div class="alert alert-${type||'error'}">${msg}</div>` : ''; }
 
+// The booking form is long — a validation message at the top alone can go
+// unnoticed if the user has already scrolled down to the Submit button.
+// This mirrors the message to a second alert placed right above Submit
+// and scrolls that copy into view so it's never missed.
+function showBookAlert(msg, type) {
+  showAlert('bookAlert', msg, type);
+  showAlert('bookAlertBottom', msg, type);
+  if (msg) {
+    const el = document.getElementById('bookAlertBottom');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+function setBookSubmitProgress(on) {
+  const bar = document.getElementById('bookSubmitProgress');
+  if (bar) bar.classList.toggle('show', !!on);
+}
+
 // ── Loading ───────────────────────────────────────────────────
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
@@ -1218,38 +1345,65 @@ function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 // ── Nav ───────────────────────────────────────────────────────
 function renderNav() {
   const nav = document.getElementById('headerNav');
+  const avatarSlot = document.getElementById('headerAvatarSlot');
   const pendingCount = App.allBookings.filter(function(b) { return b.status === 'Pending'; }).length;
   const roomSwitcher = `<div class="room-switcher">
     <button class="room-btn ${App.currentRoom==='showroom'?'active':''}" onclick="switchRoom('showroom')">🏢 Showroom</button>
     <button class="room-btn ${App.currentRoom==='conference'?'active':''}" onclick="switchRoom('conference')">🏛️ Conference</button>
   </div>`;
   let h = '';
-  const backToPortalBtn = `<button class="nav-btn" onclick="goToPortal()" title="Back to Employee Portal"><i class="fa-solid fa-arrow-left"></i> Back to Portal</button>`;
+  let avatarHtmlOut = '';
+  function avatarMenu(name, avatarUrl) {
+    return `<div class="avatar-menu-wrap">
+      <button class="avatar-btn" onclick="toggleAvatarMenu(event)" title="Account">${avatarHtml(name, '', avatarUrl)}<span class="avatar-btn-name">${name}</span><i class="fa-solid fa-chevron-down avatar-menu-chevron"></i></button>
+      <div class="avatar-menu" id="avatarMenu">
+        <button class="avatar-menu-item" onclick="closeAvatarMenu();openProfileModal()"><i class="fa-solid fa-user"></i> Profile</button>
+        <button class="avatar-menu-item" onclick="closeAvatarMenu();goToPortal()"><i class="fa-solid fa-arrow-left"></i> Back to Portal</button>
+        <div class="avatar-menu-divider"></div>
+        <button class="avatar-menu-item danger" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>`;
+  }
   if (App.admin) {
     const adminName = App.admin.displayName || App.admin.username;
-    h += backToPortalBtn;
     h += roomSwitcher;
-    h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(adminName, '', App.admin.avatar)}<span class="avatar-btn-name">${adminName}</span></button>`;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-calendar"></i> Calendar</button>`;
     h += `<button class="nav-btn ${App.currentView==='admin'?'active':''}" onclick="showView('admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard${pendingCount > 0 ? `<span class="pending-badge">${pendingCount}</span>` : ''}</button>`;
-    h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
+    avatarHtmlOut = avatarMenu(adminName, App.admin.avatar);
   } else if (App.user) {
-    h += backToPortalBtn;
     h += roomSwitcher;
-    h += `<button class="avatar-btn" onclick="openProfileModal()" title="Profile">${avatarHtml(App.user.fullName, '', App.user.avatar)}<span class="avatar-btn-name">${App.user.fullName}</span></button>`;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
     h += `<button class="nav-btn ${App.currentView==='user'?'active':''}" onclick="showView('user')"><i class="fa-solid fa-calendar-check"></i> My Bookings</button>`;
     h += `<button class="nav-btn accent" onclick="showView('book')"><i class="fa-solid fa-plus"></i> Book Now</button>`;
-    h += `<button class="nav-btn" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>`;
+    avatarHtmlOut = avatarMenu(App.user.fullName, App.user.avatar);
   } else {
-    h += backToPortalBtn;
+    h += `<button class="nav-btn" onclick="goToPortal()" title="Back to Employee Portal"><i class="fa-solid fa-arrow-left"></i> Back to Portal</button>`;
     h += roomSwitcher;
     h += `<button class="nav-btn" onclick="showView('public')"><i class="fa-solid fa-house"></i> Home</button>`;
     h += `<button class="nav-btn" onclick="showView('login')"><i class="fa-solid fa-right-to-bracket"></i> Login</button>`;
-    h += `<button class="nav-btn accent" onclick="showView('register')"><i class="fa-solid fa-user-plus"></i> Register</button>`;
   }
   nav.innerHTML = h;
+  if (avatarSlot) avatarSlot.innerHTML = avatarHtmlOut;
 }
+
+function toggleAvatarMenu(ev) {
+  ev.stopPropagation();
+  const menu = document.getElementById('avatarMenu');
+  const btn  = ev.currentTarget;
+  if (!menu) return;
+  const willOpen = !menu.classList.contains('open');
+  menu.classList.toggle('open', willOpen);
+  btn.classList.toggle('open', willOpen);
+}
+function closeAvatarMenu() {
+  const menu = document.getElementById('avatarMenu');
+  if (menu) { menu.classList.remove('open'); }
+  const btn = document.querySelector('.avatar-btn.open');
+  if (btn) btn.classList.remove('open');
+}
+document.addEventListener('click', function(ev) {
+  if (!ev.target.closest('.avatar-menu-wrap')) closeAvatarMenu();
+});
 
 // ── Room Switcher ─────────────────────────────────────────────
 const ROOM_ACTION_MAP = {
@@ -1469,7 +1623,7 @@ function loadPublicSlots(ds) {
     } else if (hasAvail && App.user) {
       h += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="prefillAndBook('${ds}')"><i class="fa-solid fa-calendar-plus"></i> Book This Date</button>`;
     } else if (!App.user && !App.admin && hasAvail) {
-      h += `<div class="alert alert-info" style="margin-top:12px"><i class="fa-solid fa-circle-info"></i><span><a onclick="showView('login')" style="color:#1e40af;font-weight:700;cursor:pointer">Login</a> or <a onclick="showView('register')" style="color:#1e40af;font-weight:700;cursor:pointer">register</a> to book.</span></div>`;
+      h += `<div class="alert alert-info" style="margin-top:12px"><i class="fa-solid fa-circle-info"></i><span><a onclick="showView('login')" style="color:#1e40af;font-weight:700;cursor:pointer">Login</a> or <a onclick="goToPortal()" style="color:#1e40af;font-weight:700;cursor:pointer">register on the Portal</a> to book.</span></div>`;
     }
     panel.innerHTML = h;
   });
@@ -1575,7 +1729,14 @@ function doRegister() {
   }, function() { setBtnLoading('btnRegister', false); showAlert('registerAlert', 'Network error. Try again.', 'error'); });
 }
 
-function doLogout() { App.user = null; App.admin = null; App.allBookings = []; toast('Logged out.', 'info'); renderNav(); showView('public'); }
+function doLogout() {
+  App.user = null; App.admin = null; App.allBookings = [];
+  // Portal (rtcsystem.github.io/employee/) and Booking System (rtcsystem.github.io/book/)
+  // share the same origin, so clearing the Portal's own session key here logs
+  // the user out of the Portal too — not just this app.
+  try { localStorage.removeItem('rtcPortalSession'); } catch(e) {}
+  goToPortal();
+}
 
 // ── BOOKING FORM ──────────────────────────────────────────────
 function prefillBookingForm() {
@@ -1607,7 +1768,7 @@ function resetBookingForm() {
   document.getElementById('bkMealRemarks').value = '';
   document.getElementById('bkMealRemarksRow').style.display = 'none';
   document.getElementById('bookSlotInfo').innerHTML = '';
-  showAlert('bookAlert','','');
+  showBookAlert('','');
   App.bookedBlocks = [];
   _bkCcList = [];
   renderBkCcChips();
@@ -1635,7 +1796,7 @@ function addBkCc() {
   const input = document.getElementById('bkCcInput');
   const val = input.value.trim();
   if (!val) return;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { showAlert('bookAlert','Enter a valid email address to CC.','error'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { showBookAlert('Enter a valid email address to CC.','error'); return; }
   const low = val.toLowerCase();
   if (_bkCcList.some(function(e) { return e.toLowerCase() === low; })) { input.value=''; return; }
   _bkCcList.push(val);
@@ -1766,27 +1927,29 @@ function doCreateBooking() {
   const roomType = isConf ? document.getElementById('bkRoomType').value : '';
 
   if (!name || !email || !date || !startTime || !endTime || !title || !purpose || !clientName || !guests) {
-    showAlert('bookAlert', 'Please fill in all required fields, including start and end time.', 'error'); return;
+    showBookAlert('Please fill in all required fields, including start and end time.', 'error'); return;
   }
   if (isConf && !roomType) {
-    showAlert('bookAlert', 'Please select a Room Type.', 'error'); return;
+    showBookAlert('Please select a Room Type.', 'error'); return;
   }
   if (mealChecked && !mealRemarks) {
-    showAlert('bookAlert', 'Please specify meal remarks when Meal Request is checked.', 'error'); return;
+    showBookAlert('Please specify meal remarks when Meal Request is checked.', 'error'); return;
   }
   setBtnLoading('btnBook', true);
+  setBookSubmitProgress(true);
   api(r_action('createBooking'), { userId: App.user.userId, fullName: name, email: email, bookingDate: date, startTime: startTime, endTime: endTime, title: title, purpose: purpose, remarks: remarks, guests: guests, clientName: clientName, mealRequest: mealRequest, ccEmails: _bkCcList.join(','), roomType: roomType }, function(r) {
     setBtnLoading('btnBook', false);
+    setBookSubmitProgress(false);
     if (r && r.success) {
       toast('Booking submitted! Awaiting admin approval.', 'warn');
-      showAlert('bookAlert', '<i class="fa-solid fa-hourglass-half"></i> ' + r.message + ' (ID: ' + r.bookingId + ')', 'warn');
+      showBookAlert('<i class="fa-solid fa-hourglass-half"></i> ' + r.message + ' (ID: ' + r.bookingId + ')', 'warn');
       resetBookingForm();
       prefillBookingForm();
       loadPublicDashboard();
     } else {
-      showAlert('bookAlert', (r && r.message) || 'Booking failed. Try again.', 'error');
+      showBookAlert((r && r.message) || 'Booking failed. Try again.', 'error');
     }
-  }, function() { setBtnLoading('btnBook', false); showAlert('bookAlert', 'Network error. Try again.', 'error'); });
+  }, function() { setBtnLoading('btnBook', false); setBookSubmitProgress(false); showBookAlert('Network error. Try again.', 'error'); });
 }
 
 // ── USER BOOKINGS ─────────────────────────────────────────────
@@ -2765,6 +2928,398 @@ function doAdminCreateBooking() {
     }
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// AVAILABILITY ASSISTANT — rule-based chatbot, no API key / no AI model.
+// Only handles: room + date availability lookups, via the exact same
+// backend actions the real calendar uses (getPublicSlots /
+// getConferenceSlots), so every answer reflects the live schedule.
+// Everything else falls back to a guided reply with quick-reply chips —
+// it never guesses at an answer it isn't sure about.
+// ══════════════════════════════════════════════════════════════
+var ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0 };
+var CHAT_ROOM_LABEL = { showroom: 'Showroom', masflex: 'Masflex Room', cascade: 'Cascade Room' };
+
+function toggleChatbot(force) {
+  const panel = document.getElementById('chatbotPanel');
+  const open = (force !== undefined) ? !!force : !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  if (open && !ChatBot.opened) {
+    ChatBot.opened = true;
+    chatBotGreet();
+  } else if (!open) {
+    // Closing (X) clears the conversation, so the next open starts fresh
+    // with a new greeting instead of resuming a stale, possibly-stuck flow.
+    const box = document.getElementById('chatbotMessages');
+    if (box) box.innerHTML = '';
+    ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0 };
+  }
+  if (open) setTimeout(function() { const inp = document.getElementById('chatbotInput'); if (inp) inp.focus(); }, 50);
+}
+
+function chatScrollBottom() {
+  const box = document.getElementById('chatbotMessages');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function addChatMsg(html, from) {
+  const box = document.getElementById('chatbotMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (from === 'user' ? 'chat-msg-user' : 'chat-msg-bot');
+  div.innerHTML = html;
+  box.appendChild(div);
+  chatScrollBottom();
+  return div;
+}
+
+function chatRoomChipsHtml() {
+  return '<div class="chat-quick-replies">'
+    + '<button class="chat-chip" onclick="chatPickRoom(\'showroom\')">🏢 Showroom</button>'
+    + '<button class="chat-chip" onclick="chatPickRoom(\'masflex\')">🏛️ Masflex Room</button>'
+    + '<button class="chat-chip" onclick="chatPickRoom(\'cascade\')">🏛️ Cascade Room</button>'
+    + '</div>';
+}
+
+// Each chat bubble that asks "which date?" renders its own <input type=date>.
+// Old bubbles stay in the DOM (it's a chat log), so a fixed id would collide —
+// getElementById() would always grab the FIRST one in the page instead of the
+// one the user is actually looking at, silently reading a stale/wrong value.
+// Giving each instance a unique id (and passing that id into its own Check
+// button) keeps every date row wired to itself.
+var _chatDateSeq = 0;
+function chatDateChipsHtml() {
+  const id = 'chatDateInput_' + (++_chatDateSeq);
+  return '<div class="chat-quick-replies">'
+    + '<button class="chat-chip" onclick="chatPickDateOffset(0)">Today</button>'
+    + '<button class="chat-chip" onclick="chatPickDateOffset(1)">Tomorrow</button>'
+    + '</div>'
+    + '<div class="chat-date-row">'
+    + '<input type="date" id="' + id + '" min="' + chatIsoDate(new Date()) + '">'
+    + '<button onclick="chatSubmitDateInput(\'' + id + '\')">Check</button>'
+    + '</div>';
+}
+
+function chatGetUserName() {
+  if (App.user && App.user.fullName) return App.user.fullName.trim().split(' ')[0];
+  if (App.admin) { const n = App.admin.displayName || App.admin.username || ''; return n.trim().split(' ')[0] || null; }
+  return null;
+}
+function chatTimeGreetingWord() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+// Detects a typed greeting (hi/hello/good morning etc.) so the bot can
+// reply in kind — echoing the same time-of-day phrase back, or a plain
+// "Hello" for a generic hi — and address the user by name if logged in.
+function chatParseGreeting(text) {
+  if (/good\s*morning/.test(text))   return 'Good morning';
+  if (/good\s*afternoon/.test(text)) return 'Good afternoon';
+  if (/good\s*evening/.test(text))   return 'Good evening';
+  if (/\b(hi|hello|hey|kumusta|magandang\s*(umaga|hapon|gabi))\b/.test(text)) return 'Hello';
+  return null;
+}
+// A few other everyday small-talk intents — thanks, goodbye, and a basic
+// "what can you do" — so the bot doesn't go silent on common chat openers
+// beyond just greetings.
+function chatParseSmallTalk(text) {
+  if (/\blove[sd]?\b/.test(text)) return 'love';
+  if (/\b(thank\s*you|thanks|thank\s*u|salamat)\b/.test(text)) return 'thanks';
+  if (/\b(bye|goodbye|see\s*you|paalam|ingat)\b/.test(text)) return 'bye';
+  if (/\b(who are you|what are you|what can you do|help me|how (does this|do you) work)\b/.test(text)) return 'help';
+  if (/^\s*(ok|okay|sige|alright)\s*[.!]?\s*$/.test(text)) return 'ok';
+  return null;
+}
+function chatSmallTalkReply(kind) {
+  const name = chatGetUserName();
+  if (kind === 'thanks') {
+    addChatMsg('You\'re welcome' + (name ? ', ' + name : '') + '! Anything else you\'d like me to check?' + chatRoomChipsHtml(), 'bot');
+  } else if (kind === 'bye') {
+    addChatMsg('Bye' + (name ? ', ' + name : '') + '! Come back anytime you need to check room availability. 👋', 'bot');
+  } else if (kind === 'help') {
+    addChatMsg('I\'m <strong>Harry</strong>, the RTC AI Assistant! I look up the real, live schedule for you — no guessing. I can tell you what dates/times are open for the <strong>Showroom</strong>, <strong>Masflex Room</strong>, or <strong>Cascade Room</strong>, and I can guide you on how to book. Tap a room below, or type something like "Is Masflex free tomorrow?"' + chatRoomChipsHtml(), 'bot');
+  } else if (kind === 'love') {
+    addChatMsg('I love you too' + (name ? ', ' + name : '') + '! 💕 Now, want me to check a room for you?' + chatRoomChipsHtml(), 'bot');
+  } else if (kind === 'ok') {
+    addChatMsg('👍 Let me know if you\'d like to check a room\'s availability.' + chatRoomChipsHtml(), 'bot');
+  }
+}
+function chatAskRoomAgain() {
+  addChatMsg('Which room would you like to check?' + chatRoomChipsHtml(), 'bot');
+}
+function chatShowHowToBook() {
+  addChatMsg(
+    '<strong>How to book a room:</strong><br>'
+    + '1. Log in through the Employee Portal with your @rameshtrading.com.ph account.<br>'
+    + '2. Click <strong>Book Now</strong> and choose Showroom or Conference (Masflex/Cascade).<br>'
+    + '3. Pick a date — available time slots load automatically.<br>'
+    + '4. Fill in the details (title, agenda, guest names, etc.) and hit <strong>Submit Booking Request</strong>.<br>'
+    + '5. Your booking stays <strong>Pending</strong> until an admin approves it — you\'ll get an email once it\'s confirmed.'
+    + '<br><br>Want me to check a room\'s availability first?' + chatRoomChipsHtml(),
+    'bot'
+  );
+}
+// Turns a list of individual 30-min start times into merged ranges, e.g.
+// [8:00,8:30,9:00,9:30,10:00,10:30] (slotMin=30) becomes one
+// "8:00 AM – 11:00 AM" block instead of six separate chips.
+function chatMergeSlotRanges(startMins, slotMin) {
+  if (!startMins.length) return [];
+  const sorted = startMins.slice().sort(function(a, b) { return a - b; });
+  const ranges = [];
+  let rangeStart = sorted[0], prev = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] - prev === slotMin) { prev = sorted[i]; }
+    else { ranges.push([rangeStart, prev + slotMin]); rangeStart = sorted[i]; prev = sorted[i]; }
+  }
+  ranges.push([rangeStart, prev + slotMin]);
+  return ranges;
+}
+
+function chatBotGreet() {
+  const name = chatGetUserName();
+  const hello = chatTimeGreetingWord() + (name ? ', ' + name : '') + '! ';
+  addChatMsg(hello + 'I\'m <strong>Harry</strong>, your RTC AI Assistant. I can check real-time availability for the Showroom, Masflex Room, and Cascade Room, and I can walk you through how to book. Which room would you like to check?' + chatRoomChipsHtml(), 'bot');
+}
+
+// IMPORTANT: format the LOCAL calendar date directly — do NOT use
+// toISOString() here. toISOString() converts to UTC first, which silently
+// rolls the date back a day for any timezone ahead of UTC (e.g. PH,
+// UTC+8) whenever the local time is past midnight but before UTC's. That
+// was causing "July 20" to be sent to the backend as "July 19".
+function chatIsoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function chatFriendlyDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function chatPickRoom(room) {
+  addChatMsg(CHAT_ROOM_LABEL[room], 'user');
+  ChatBot.pendingRoom = room;
+  if (ChatBot.pendingDate) {
+    chatFetchAvailability(room, ChatBot.pendingDate);
+    ChatBot.pendingDate = null;
+  } else {
+    addChatMsg('Got it — ' + CHAT_ROOM_LABEL[room] + '. Which date?' + chatDateChipsHtml(), 'bot');
+  }
+}
+
+function chatPickDateOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const iso = chatIsoDate(d);
+  addChatMsg(days === 0 ? 'Today' : 'Tomorrow', 'user');
+  chatResolveDate(iso);
+}
+
+function chatSubmitDateInput(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const val = el.value;
+  if (!val) return;
+  addChatMsg(chatFriendlyDate(val), 'user');
+  chatResolveDate(val);
+}
+
+function chatResolveDate(iso) {
+  if (ChatBot.pendingRoom) {
+    chatFetchAvailability(ChatBot.pendingRoom, iso);
+  } else {
+    ChatBot.pendingDate = iso;
+    addChatMsg('Sure — for ' + chatFriendlyDate(iso) + ', which room?' + chatRoomChipsHtml(), 'bot');
+  }
+}
+
+function chatTypingStart() {
+  const box = document.getElementById('chatbotMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-typing';
+  div.id = 'chatTypingIndicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  box.appendChild(div);
+  chatScrollBottom();
+}
+function chatTypingStop() {
+  const el = document.getElementById('chatTypingIndicator');
+  if (el) el.remove();
+}
+
+function chatFetchAvailability(room, dateIso) {
+  ChatBot.pendingRoom = null;
+  chatTypingStart();
+  const action = room === 'showroom' ? 'getPublicSlots' : 'getConferenceSlots';
+  const roomType = room === 'masflex' ? 'Masflex Room' : (room === 'cascade' ? 'Cascade Room' : '');
+  api(action, { date: dateIso, roomType: roomType }, function(r) {
+    chatTypingStop();
+    const label = CHAT_ROOM_LABEL[room];
+    const when  = chatFriendlyDate(dateIso);
+    if (!r || !r.success) {
+      addChatMsg('Sorry, I couldn\'t check that right now. Please try again in a moment.', 'bot');
+      return;
+    }
+    if (r.blocked) {
+      addChatMsg('📅 <strong>' + label + '</strong> is <strong>not available</strong> on ' + when + ' (blocked date). Try another date?' + chatDateChipsHtml(), 'bot');
+      return;
+    }
+    const openMin  = r.openMin  || 480;
+    const closeMin = r.closeMin || 1080;
+    const slotMin  = r.slotMin  || 30;
+    const startMins = buildStartMins(r.bookedBlocks || [], openMin, closeMin, slotMin);
+    if (startMins.length === 0) {
+      addChatMsg('😕 <strong>' + label + '</strong> is <strong>fully booked</strong> on ' + when + '. Want to try a different date or room?' + chatRoomChipsHtml() + chatDateChipsHtml(), 'bot');
+      return;
+    }
+    const ranges = chatMergeSlotRanges(startMins, slotMin);
+    const chips = ranges.map(function(r) { return '<span class="chat-slot-chip">' + minToTimeStr(r[0]) + ' – ' + minToTimeStr(r[1]) + '</span>'; }).join('');
+    addChatMsg('✅ <strong>' + label + '</strong> is open on ' + when + ' during:<div class="chat-slot-list">' + chips + '</div>'
+      + '<div class="chat-quick-replies">'
+      + '<button class="chat-chip" onclick="chatAskRoomAgain()">Check another</button>'
+      + '</div>', 'bot');
+  }, function() {
+    chatTypingStop();
+    addChatMsg('Network error — please try again.', 'bot');
+  }, true);
+}
+
+// Lightweight keyword + date parsing — not real NLU. Handles: room name
+// (showroom/masflex/cascade), "today"/"tomorrow", ISO dates, mm/dd(/yyyy),
+// and "Month Day". Anything it can't confidently parse falls back to the
+// guided quick-reply flow instead of guessing.
+function chatParseRoom(text) {
+  if (/masflex/.test(text)) return 'masflex';
+  if (/cascade/.test(text)) return 'cascade';
+  if (/show\s*room/.test(text)) return 'showroom';
+  return null;
+}
+function chatParseDate(text) {
+  const today = new Date();
+  if (/\btoday\b/.test(text)) return chatIsoDate(today);
+  if (/\btomorrow\b/.test(text)) { const d = new Date(today); d.setDate(d.getDate() + 1); return chatIsoDate(d); }
+  let m = text.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3]); if (!isNaN(d)) return chatIsoDate(d); }
+  m = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+  if (m) {
+    let yr = m[3] ? (m[3].length === 2 ? 2000 + (+m[3]) : +m[3]) : today.getFullYear();
+    const d = new Date(yr, +m[1] - 1, +m[2]);
+    if (!isNaN(d)) return chatIsoDate(d);
+  }
+  const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+  for (let i = 0; i < months.length; i++) {
+    const re = new RegExp('\\b(' + months[i] + '|' + months[i].slice(0, 3) + ')\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b', 'i');
+    const mm = text.match(re);
+    if (mm) {
+      let d = new Date(today.getFullYear(), i, +mm[2]);
+      if (d < new Date(today.getFullYear(), today.getMonth(), today.getDate())) d.setFullYear(today.getFullYear() + 1);
+      return chatIsoDate(d);
+    }
+  }
+  return null;
+}
+
+// True for keyboard-mash gibberish: a single space-free token of 3+
+// letters with no vowels, very few vowels, or a long run of consonants —
+// real words/sentences don't look like this. Short tokens (<3 letters,
+// e.g. "ok", "hi") are left alone since there's too little to judge.
+function chatIsGibberish(text) {
+  const trimmed = text.trim();
+  if (!trimmed || /\s/.test(trimmed)) return false;
+  const letters = trimmed.replace(/[^a-zA-Z]/g, '');
+  if (letters.length < 3) return false;
+  const vowels = (letters.match(/[aeiou]/gi) || []).length;
+  if (vowels === 0) return true;
+  if (/[^aeiou\s]{4,}/i.test(letters)) return true;
+  return false;
+}
+// Playful refusal for "do it for me" requests — Harry answers questions,
+// it doesn't fill out forms or make bookings on someone's behalf.
+function chatIsDoItYourself(text) {
+  return /\bcan you (make|fill\s*(up|out)|book|create|write|do|complete|submit|analyze)\b/i.test(text)
+    || /\bbook\s*(for\s*)?me\b/i.test(text)
+    || /\banalyze\b/i.test(text);
+}
+// "Is there work/class tomorrow" style questions — common PH office joke.
+function chatIsMayPasok(text) {
+  return /\bpasok\b/i.test(text)
+    || /\bis there\s+(work|school|class)\b/i.test(text)
+    || /\b(work|school|class)\s+tomorrow\b/i.test(text)
+    || /\bno\s+class(es)?\b/i.test(text);
+}
+function chatIsSalaryTalk(text) {
+  return /\b(salary|salaries|promote|promoted|promotion)\b/i.test(text);
+}
+// Memos/files/documents live in the Employee Portal, not here — Harry only
+// knows about room availability in this system.
+function chatIsMemoFileQuestion(text) {
+  return /\b(memo|memos|file|files|document|documents)\b/i.test(text);
+}
+
+function sendChatbotMessage() {
+  const input = document.getElementById('chatbotInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addChatMsg(escHtml(text), 'user');
+  input.value = '';
+
+  const lower = text.toLowerCase();
+
+  // Same exact message sent 3x in a row -> Harry calls it out, regardless of topic.
+  const norm = lower.replace(/\s+/g, ' ').trim();
+  ChatBot.repeatStreak = (norm && norm === ChatBot.lastMsgNorm) ? ChatBot.repeatStreak + 1 : 1;
+  ChatBot.lastMsgNorm = norm;
+  if (ChatBot.repeatStreak >= 3) { addChatMsg('TANGA', 'bot'); return; }
+
+  if (chatIsDoItYourself(lower)) {
+    ChatBot.doItYourselfCount++;
+    addChatMsg(ChatBot.doItYourselfCount >= 3 ? 'TANGA' : 'No. You do it yourself.', 'bot');
+    return;
+  }
+  if (chatIsMayPasok(lower)) { addChatMsg('SMTD', 'bot'); return; }
+  if (chatIsSalaryTalk(lower)) {
+    ChatBot.salaryHitCount++;
+    addChatMsg(ChatBot.salaryHitCount > 1 ? 'TANGA' : 'KALOKOHAN', 'bot');
+    return;
+  }
+  if (chatIsGibberish(lower)) { addChatMsg('KALOKOHAN', 'bot'); return; }
+
+  const greeting = chatParseGreeting(lower);
+  if (greeting) {
+    const name = chatGetUserName();
+    addChatMsg(greeting + (name ? ', ' + name : '') + '! Which room would you like to check?' + chatRoomChipsHtml(), 'bot');
+    return;
+  }
+
+  const smallTalk = chatParseSmallTalk(lower);
+  if (smallTalk) { chatSmallTalkReply(smallTalk); return; }
+
+  if (chatIsMemoFileQuestion(lower)) {
+    addChatMsg('📄 For memos, files, or documents, head over to the <strong>Employee Portal</strong> — I only handle room availability here.'
+      + '<div class="chat-quick-replies"><button class="chat-chip" onclick="goToPortal()">Go to Portal</button></div>', 'bot');
+    return;
+  }
+
+  const room = chatParseRoom(lower);
+  const date = chatParseDate(lower);
+
+  if (room && date) { chatFetchAvailability(room, date); return; }
+  if (room && !date) { ChatBot.pendingRoom = room; addChatMsg('Got it — ' + CHAT_ROOM_LABEL[room] + '. Which date?' + chatDateChipsHtml(), 'bot'); return; }
+  if (!room && date) { ChatBot.pendingDate = date; addChatMsg('Sure — for ' + chatFriendlyDate(date) + ', which room?' + chatRoomChipsHtml(), 'bot'); return; }
+  if (ChatBot.pendingRoom) {
+    // A room is already pending from the previous turn — this message was
+    // expected to contain a date. If it didn't parse, re-prompt instead of
+    // guessing with raw, unparsed text.
+    addChatMsg('I didn\'t catch a date there. Try "today", "tomorrow", or pick one below:' + chatDateChipsHtml(), 'bot');
+    return;
+  }
+
+  addChatMsg('I can check availability for Showroom, Masflex Room, or Cascade Room — pick one below, or tell me a room + date (e.g. "Is Masflex free tomorrow?").' + chatRoomChipsHtml(), 'bot');
+}
 </script>
 
 <!-- ── MODAL: FORGOT PASSWORD (OTP Flow) ─────────────────── -->
@@ -2945,6 +3500,52 @@ function doAdminCreateBooking() {
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalAdminCreate')">Cancel</button>
       <button class="btn btn-primary" onclick="doAdminCreateBooking()" id="btnAcSubmit"><i class="fa-solid fa-calendar-plus"></i> Create Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Availability Assistant (rule-based, no API key / no AI model) ── -->
+<div class="chatbot-wrap" id="chatbotWrap">
+  <button class="chatbot-bubble" id="chatbotBubble" onclick="toggleChatbot()" title="Ask Harry">
+    <div class="harry-logo" style="width:56px;height:56px">
+      <div class="harry-logo-canvas" style="transform:scale(0.16)">
+        <div class="harry-logo-ear left"></div><div class="harry-logo-ear right"></div>
+        <div class="harry-logo-face">
+          <div class="harry-logo-eyebrows"><div class="harry-logo-eyebrow left"></div><div class="harry-logo-eyebrow right"></div></div>
+          <div class="harry-logo-eyes"><div class="harry-logo-eye left"><div class="harry-logo-pupil"></div></div><div class="harry-logo-eye right"><div class="harry-logo-pupil"></div></div></div>
+          <div class="harry-logo-nose"></div>
+          <div class="harry-logo-mouth"><div class="harry-logo-smirk"></div></div>
+        </div>
+        <div class="harry-logo-hair"></div>
+      </div>
+    </div>
+  </button>
+  <div class="chatbot-panel" id="chatbotPanel">
+    <div class="chatbot-header">
+      <div class="chatbot-header-title">
+        <div class="harry-logo" style="width:24px;height:24px;box-shadow:none">
+          <div class="harry-logo-canvas" style="transform:scale(0.068571)">
+            <div class="harry-logo-ear left"></div><div class="harry-logo-ear right"></div>
+            <div class="harry-logo-face">
+              <div class="harry-logo-eyebrows"><div class="harry-logo-eyebrow left"></div><div class="harry-logo-eyebrow right"></div></div>
+              <div class="harry-logo-eyes"><div class="harry-logo-eye left"><div class="harry-logo-pupil"></div></div><div class="harry-logo-eye right"><div class="harry-logo-pupil"></div></div></div>
+              <div class="harry-logo-nose"></div>
+              <div class="harry-logo-mouth"><div class="harry-logo-smirk"></div></div>
+            </div>
+            <div class="harry-logo-hair"></div>
+          </div>
+        </div>
+        Ask Harry
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="chatbot-help-btn" onclick="chatShowHowToBook()" title="How to Book"><i class="fa-solid fa-circle-question"></i> How to Book</button>
+        <button class="chatbot-close" onclick="toggleChatbot(false)" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="chatbot-messages" id="chatbotMessages"></div>
+    <div class="chatbot-input-row">
+      <input type="text" id="chatbotInput" placeholder="e.g. Is Masflex free tomorrow?" onkeydown="if(event.key==='Enter'){sendChatbotMessage();}">
+      <button onclick="sendChatbotMessage()" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
   </div>
 </div>
