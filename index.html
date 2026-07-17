@@ -272,10 +272,181 @@ tr.row-pending:hover td { background: #fef9c3; }
 .faq-item p { font-size: 13px; color: var(--gray-600); margin-top: 8px; line-height: 1.5; }
 
 /* ── Loading ─────────────────────────────────────────────────── */
-.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,.75); z-index: 500; display: flex; align-items: center; justify-content: center; }
+.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,.9); z-index: 500; display: flex; align-items: center; justify-content: center; }
 .spinner { width: 44px; height: 44px; border: 4px solid var(--gray-200); border-top-color: var(--maroon); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+
+/* ── Global system loader (RTC Booking System) ───────────────────
+   Shown inside #loadingOverlay for every api() call that doesn't opt
+   out via skipGlobal (calendar fetches use their own localized loader
+   instead — see .cal-loading above). */
+.rtcsys-icon { position: relative; width: 72px; height: 72px; margin: 0 auto 20px; }
+.rtcsys-calbox {
+  width: 100%; height: 100%; border: 4px solid var(--maroon,#b91c1c); border-top-width: 11px;
+  border-radius: 8px; position: relative; animation: rtcsys-pulse 2s infinite ease-in-out;
+}
+.rtcsys-hand { position: absolute; top: 50%; left: 50%; width: 3px; height: 18px; background-color: #ef4444; transform-origin: top center; border-radius: 2px; animation: rtcsys-spin 1.5s infinite linear; }
+.rtcsys-ring { position: absolute; top: -9px; left: -9px; width: 90px; height: 90px; border: 3px solid transparent; border-top-color: #7f1d1d; border-radius: 50%; animation: rtcsys-spin 2s infinite linear; }
+.rtcsys-title { color: var(--maroon,#b91c1c); font-size: 1.05rem; font-weight: 700; letter-spacing: .08em; margin-bottom: 4px; text-transform: uppercase; text-align: center; }
+.rtcsys-sub { color: #7f1d1d; font-size: .8rem; letter-spacing: .03em; font-weight: 500; text-align: center; }
+.rtcsys-progress { width: 160px; height: 4px; background-color: rgba(127,29,29,.15); border-radius: 2px; margin: 16px auto 0; overflow: hidden; }
+.rtcsys-progress-line { width: 100%; height: 100%; background: linear-gradient(90deg,#7f1d1d,#ef4444); transform: translateX(-100%); animation: rtcsys-loading 2.5s infinite ease-in-out; }
+@keyframes rtcsys-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes rtcsys-pulse { 0%,100% { transform: scale(1); opacity: .9; box-shadow: 0 0 0 0 rgba(185,28,28,.4); } 50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 20px 4px rgba(185,28,28,.2); } }
+@keyframes rtcsys-loading { 0% { transform: translateX(-100%); } 50% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+
+/* ── Calendar-local loading (RTC mascot) ────────────────────────
+   Small, self-contained loader that overlays just the calendar grid
+   (not the whole page) while its data is being fetched/refreshed.
+   Positioned toward the left side of the calendar area per request —
+   .cal-loading-inner is left-aligned rather than centered. Scaled down
+   from a 320x480 source design via transform:scale() so all the
+   original keyframe math (bottom:240px etc.) still works unmodified. */
+.cal-wrap { position: relative; }
+.cal-loading {
+  position: absolute; inset: 0; z-index: 20; border-radius: 10px;
+  background: rgba(255,255,255,.9);
+  display: none; align-items: center; justify-content: center;
+}
+.cal-loading.show { display: flex; }
+.cal-loading-inner {
+  position: relative; width: 240px; height: 360px; overflow: hidden;
+}
+.rtcload-container {
+  position: relative; width: 320px; height: 480px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  transform: scale(.75); transform-origin: top left;
+}
+.rtcload-block {
+  width: 100px; height: 100px; background-color: #fcae1e; border-radius: 22px;
+  position: absolute; bottom: 240px;
+  box-shadow: 0 15px 35px rgba(0,0,0,.5), 0 0 25px rgba(252,174,30,.35);
+  display: flex; justify-content: center; align-items: center;
+  animation: rtcload-bump .9s infinite linear; box-sizing: border-box; z-index: 10;
+}
+.rtcload-block::after {
+  content: ""; position: absolute; width: 8px; height: 8px; background: #ffe6b3; border-radius: 50%;
+  box-shadow: 62px 0 0 #ffe6b3, 0 62px 0 #ffe6b3, 62px 62px 0 #ffe6b3;
+  top: 12px; left: 12px; opacity: .9;
+}
+.rtcload-calicon {
+  width: 44px; height: 44px; background-color: #fff; border-radius: 8px; position: relative;
+  box-shadow: 0 4px 10px rgba(0,0,0,.15), inset 0 -3px 0 #e0e0e0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.rtcload-calicon::before { content: ""; width: 100%; height: 14px; background-color: #ff3b3b; position: absolute; top: 0; left: 0; }
+.rtcload-calicon::after {
+  content: ""; position: absolute; width: 6px; height: 6px; background-color: #b0bec5; border-radius: 1px; top: 22px; left: 8px;
+  box-shadow: 11px 0 0 #b0bec5, 22px 0 0 #b0bec5, 0 11px 0 #b0bec5, 11px 11px 0 #b0bec5, 22px 11px 0 #b0bec5;
+}
+.rtcload-mario {
+  width: 80px; height: 125px; position: absolute; bottom: 30px;
+  animation: rtcload-jump .9s infinite cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column; align-items: center; z-index: 5;
+}
+.rtcload-cap { width: 64px; height: 22px; background-color: var(--maroon,#800020); border-radius: 16px 16px 4px 4px; position: relative; z-index: 4; box-shadow: 0 4px 8px rgba(0,0,0,.15); }
+.rtcload-cap::before {
+  content: "RTC"; position: absolute; width: 28px; height: 14px; background-color: #fff; color: var(--maroon,#800020);
+  font-size: 9px; font-weight: 900; text-align: center; line-height: 15px; border-radius: 10px;
+  left: 50%; transform: translateX(-50%); top: 4px; font-family: 'Arial Black', sans-serif; letter-spacing: .5px;
+}
+.rtcload-cap::after { content: ""; position: absolute; background-color: var(--maroon,#800020); width: 14px; height: 6px; right: -2px; bottom: -1px; border-radius: 0 4px 4px 0; }
+.rtcload-face {
+  width: 58px; height: 42px; background-color: #ffdcb3; border-radius: 0 0 18px 18px; margin-top: -2px;
+  position: relative; z-index: 3; box-shadow: 0 4px 10px rgba(0,0,0,.1); display: flex; justify-content: center;
+}
+.rtcload-face::before { content: ""; position: absolute; width: 10px; height: 14px; background-color: #ffdcb3; border-radius: 50%; left: -5px; top: 8px; box-shadow: 60px 0 0 #ffdcb3; }
+.rtcload-eyes { position: absolute; top: 8px; width: 36px; display: flex; justify-content: space-between; z-index: 5; }
+.rtcload-eye { width: 8px; height: 11px; background-color: #22313f; border-radius: 50%; position: relative; }
+.rtcload-eye::after { content: ""; position: absolute; width: 3px; height: 3px; background-color: #fff; border-radius: 50%; top: 2px; left: 2px; }
+.rtcload-nose { position: absolute; width: 16px; height: 12px; background-color: #ffdcb3; border-radius: 50%; top: 15px; z-index: 6; box-shadow: 0 2px 4px rgba(0,0,0,.08); left: 50%; transform: translateX(-50%); }
+.rtcload-smile { position: absolute; width: 18px; height: 9px; border-bottom: 3px solid #3d2a1d; border-radius: 0 0 12px 12px; bottom: 6px; z-index: 5; left: 50%; transform: translateX(-50%); }
+.rtcload-body { width: 60px; height: 54px; background-color: #ff3b3b; border-radius: 12px 12px 22px 22px; margin-top: 2px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.rtcload-overalls { position: absolute; bottom: 0; width: 100%; height: 38px; background-color: #0066ff; border-radius: 0 0 22px 22px; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.rtcload-straps { position: absolute; top: 0; width: 100%; height: 16px; z-index: 1; }
+.rtcload-straps::before, .rtcload-straps::after { content: ""; position: absolute; width: 12px; height: 18px; background-color: #0066ff; top: 0; }
+.rtcload-straps::before { left: 0; border-radius: 4px 4px 0 0; }
+.rtcload-straps::after { right: 0; border-radius: 4px 4px 0 0; }
+.rtcload-buttons { position: absolute; top: 2px; width: 32px; height: 6px; z-index: 3; }
+.rtcload-buttons::before, .rtcload-buttons::after { content: ""; position: absolute; width: 6px; height: 6px; background-color: #ffca28; border-radius: 50%; }
+.rtcload-buttons::before { left: 0; }
+.rtcload-buttons::after { right: 0; }
+.rtcload-bodytext { color: #fff; font-size: 8px; font-weight: 900; letter-spacing: .5px; font-family: 'Arial Black', sans-serif; z-index: 4; margin-top: 14px; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.rtcload-floattext {
+  color: #ffca28; font-size: 20px; font-weight: 800; letter-spacing: 5px; position: absolute; bottom: 355px;
+  text-shadow: 0 0 12px rgba(255,202,40,.4); white-space: nowrap; opacity: 0; transform: translateY(20px) scale(.8);
+  animation: rtcload-coin .9s infinite linear; z-index: 1;
+}
+@keyframes rtcload-jump { 0% { transform: translateY(0); } 30% { transform: translateY(-102px); } 36% { transform: translateY(-102px); } 65%, 100% { transform: translateY(0); } }
+@keyframes rtcload-bump { 0%, 29% { transform: translateY(0); } 30% { transform: translateY(0); } 33% { transform: translateY(-16px); } 42% { transform: translateY(2px); } 50%, 100% { transform: translateY(0); } }
+@keyframes rtcload-coin { 0%, 29% { opacity: 0; transform: translateY(20px) scale(.8); } 32% { opacity: 1; transform: translateY(-38px) scale(1.1); } 45% { transform: translateY(-32px) scale(1); opacity: 1; } 60% { opacity: 0; transform: translateY(-60px) scale(.85); } 100% { opacity: 0; transform: translateY(20px) scale(.8); } }
+
+/* ── Room-switch transition (center screen) ─────────────────────
+   Brief branded flash shown while toggling Showroom ↔ Conference —
+   purely a transition cue, auto-hides itself on a timer regardless
+   of how long the underlying data reload actually takes. */
+.room-transition {
+  position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.room-transition.show { opacity: 1; pointer-events: auto; }
+.room-transition-card {
+  background: #fff; border-radius: 14px; padding: 28px 40px; text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,.3);
+  transform: scale(.85); transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.room-transition.show .room-transition-card { transform: scale(1); }
+.room-transition-icon { font-size: 40px; margin-bottom: 10px; animation: room-transition-pulse .6s ease infinite; }
+.room-transition-label { font-weight: 800; font-size: 15px; color: var(--gray-700, #374151); letter-spacing: .3px; }
+@keyframes room-transition-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+/* ── Time Slots loader (Bold Maroon Clock) ───────────────────────
+   Shown in the Time Slots panel while a selected date's availability
+   is being fetched. Truly centered (flex, min-height) instead of the
+   old .empty-state (which only had top padding, so it sat near the
+   top of a tall panel instead of the middle). */
+.slot-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; gap: 20px; }
+.rtcclock-base {
+  width: 90px; height: 90px; border: 6px solid rgba(128,0,32,.15);
+  border-top-color: var(--maroon,#800020); border-bottom-color: var(--maroon,#800020);
+  border-radius: 50%; position: relative; display: flex; justify-content: center; align-items: center;
+  box-shadow: 0 0 20px rgba(128,0,32,.2);
+}
+.rtcclock-center { position: absolute; width: 10px; height: 10px; background-color: var(--maroon,#800020); border: 2px solid #fff; border-radius: 50%; z-index: 10; box-shadow: 0 0 8px rgba(163,0,41,.5); }
+.rtcclock-hand { position: absolute; bottom: 50%; left: calc(50% - 2px); width: 4px; border-radius: 4px; transform-origin: bottom center; }
+.rtcclock-hour { height: 22px; background-color: var(--maroon,#800020); animation: rtcclock-spin 6s linear infinite; }
+.rtcclock-minute { height: 32px; background-color: #a30029; box-shadow: 0 0 6px rgba(163,0,41,.4); animation: rtcclock-spin 1.2s cubic-bezier(.4,0,.2,1) infinite; }
+.rtcclock-title { font-size: 15px; font-weight: 700; color: var(--gray-700,#374151); margin-bottom: 2px; }
+.rtcclock-sub { font-size: 12.5px; color: var(--gray-400,#94a3b8); }
+@keyframes rtcclock-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ── Book form loader (skeleton) ─────────────────────────────────
+   Shown briefly over the booking form card when entering the "Book
+   Now" / "Book This Date" flow, while loadBkUserList() (CC dropdown
+   data) fetches. Auto-hides once that finishes (or immediately if
+   the data was already cached from an earlier visit this session). */
+.rtcskel-overlay {
+  position: absolute; inset: 0; z-index: 30; border-radius: 12px;
+  background: #fff; display: none; flex-direction: column; align-items: center;
+  padding: 2.5rem 2rem; text-align: center;
+}
+.rtcskel-overlay.show { display: flex; }
+.rtcskel-logo { position: relative; width: 64px; height: 64px; margin: 0 auto 1.1rem; }
+.rtcskel-ring { position: absolute; width: 100%; height: 100%; border: 4px solid var(--gray-200,#e2e8f0); border-top: 4px solid var(--maroon,#800020); border-radius: 50%; animation: rtcskel-spin 1s cubic-bezier(.55,.055,.675,.19) infinite; }
+.rtcskel-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: var(--maroon,#800020); font-size: 22px; animation: rtcskel-pulse 1.5s ease-in-out infinite; }
+.rtcskel-title { font-size: 1.15rem; font-weight: 700; color: var(--gray-700,#0f172a); margin-bottom: .3rem; }
+.rtcskel-sub { font-size: .85rem; color: var(--gray-400,#64748b); margin-bottom: 1.6rem; }
+.rtcskel-form { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 340px; }
+.rtcskel-group { display: flex; flex-direction: column; gap: .4rem; text-align: left; }
+.rtcskel-shimmer { background: linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%); background-size: 200% 100%; animation: rtcskel-shimmer 1.5s infinite linear; border-radius: 6px; }
+.rtcskel-label { width: 35%; height: 11px; }
+.rtcskel-input { width: 100%; height: 36px; border-radius: 8px; }
+.rtcskel-button { width: 100%; height: 40px; border-radius: 8px; margin-top: .4rem; }
+@keyframes rtcskel-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes rtcskel-pulse { 0%,100% { transform: translate(-50%,-50%) scale(.95); opacity: .8; } 50% { transform: translate(-50%,-50%) scale(1.05); opacity: 1; } }
+@keyframes rtcskel-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── Misc ───────────────────────────────────────────────────── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -305,7 +476,20 @@ tr.row-pending:hover td { background: #fef9c3; }
 </head>
 <body>
 
-<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div>
+    <div class="rtcsys-icon"><div class="rtcsys-ring"></div><div class="rtcsys-calbox"><div class="rtcsys-hand"></div></div></div>
+    <div class="rtcsys-title">RTC Booking System</div>
+    <div class="rtcsys-sub">Securing your schedule…</div>
+    <div class="rtcsys-progress"><div class="rtcsys-progress-line"></div></div>
+  </div>
+</div>
+<div class="room-transition" id="roomTransition">
+  <div class="room-transition-card">
+    <div class="room-transition-icon" id="roomTransitionIcon">🏢</div>
+    <div class="room-transition-label" id="roomTransitionLabel">Switching to Showroom…</div>
+  </div>
+</div>
 <div id="toast-container"></div>
 
 <!-- ── HEADER ──────────────────────────────────────────────── -->
@@ -336,7 +520,7 @@ tr.row-pending:hover td { background: #fef9c3; }
     </div>
     <div class="grid-2">
       <div class="card">
-        <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Availability Calendar</h2></div>
+        <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Availability Calendar</h2><button class="btn btn-ghost btn-sm" onclick="loadPublicCalendar()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
         <div class="card-body">
           <div class="form-group" id="pubRoomTypeGroup" style="display:none;margin-bottom:10px">
             <label>Room Type</label>
@@ -345,13 +529,16 @@ tr.row-pending:hover td { background: #fef9c3; }
               <option value="Cascade Room">Cascade Room</option>
             </select>
           </div>
-          <div class="cal-nav">
-            <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-            <h3 id="calTitle">—</h3>
-            <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+          <div class="cal-wrap">
+            <div class="cal-loading" id="pubCalLoading"><div class="cal-loading-inner"><div class="rtcload-container"><div class="rtcload-floattext">PLEASE WAIT</div><div class="rtcload-block"><div class="rtcload-calicon"></div></div><div class="rtcload-mario"><div class="rtcload-cap"></div><div class="rtcload-face"><div class="rtcload-eyes"><div class="rtcload-eye"></div><div class="rtcload-eye"></div></div><div class="rtcload-nose"></div><div class="rtcload-smile"></div></div><div class="rtcload-body"><div class="rtcload-straps"></div><div class="rtcload-overalls"><div class="rtcload-buttons"></div><div class="rtcload-bodytext">RTC</div></div></div></div></div></div></div>
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+              <h3 id="calTitle">—</h3>
+              <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="cal-grid" id="calDayLabels"></div>
+            <div class="cal-grid" id="calGrid" style="margin-top:4px"></div>
           </div>
-          <div class="cal-grid" id="calDayLabels"></div>
-          <div class="cal-grid" id="calGrid" style="margin-top:4px"></div>
           <div style="margin-top:12px;display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
             <span><span style="display:inline-block;width:10px;height:10px;background:#fee2e2;border-radius:2px;margin-right:4px"></span>Booked</span>
             <span><span style="display:inline-block;width:10px;height:10px;background:#e5e7eb;border-radius:2px;margin-right:4px"></span>Blocked</span>
@@ -457,7 +644,18 @@ tr.row-pending:hover td { background: #fef9c3; }
       <button class="btn btn-ghost btn-sm" onclick="showView('user')"><i class="fa-solid fa-arrow-left"></i> Back</button>
       <div><div class="page-title" id="bookPageTitle">Book Appointment</div><div class="page-subtitle" id="bookPageSubtitle">Schedule a showroom visit — subject to admin approval</div></div>
     </div>
-    <div class="card">
+    <div class="card" id="bookFormWrap" style="position:relative">
+      <div class="rtcskel-overlay" id="bookFormLoading">
+        <div class="rtcskel-logo"><div class="rtcskel-ring"></div><div class="rtcskel-icon"><i class="fa-regular fa-calendar-plus"></i></div></div>
+        <h3 class="rtcskel-title">Preparing Appointment Form</h3>
+        <p class="rtcskel-sub">Setting up your booking form, please wait…</p>
+        <div class="rtcskel-form">
+          <div class="rtcskel-group"><div class="rtcskel-shimmer rtcskel-label"></div><div class="rtcskel-shimmer rtcskel-input"></div></div>
+          <div class="rtcskel-group"><div class="rtcskel-shimmer rtcskel-label"></div><div class="rtcskel-shimmer rtcskel-input"></div></div>
+          <div class="rtcskel-group"><div class="rtcskel-shimmer rtcskel-label" style="width:25%"></div><div class="rtcskel-shimmer rtcskel-input"></div></div>
+          <div class="rtcskel-shimmer rtcskel-button"></div>
+        </div>
+      </div>
       <div class="card-body">
         <div id="bookAlert"></div>
         <div class="form-row">
@@ -610,15 +808,18 @@ tr.row-pending:hover td { background: #fef9c3; }
     <div class="tab-pane" id="adminPane-calendar">
       <div class="grid-2">
         <div class="card">
-          <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Monthly View</h2></div>
+          <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Monthly View</h2><button class="btn btn-ghost btn-sm" onclick="loadAdminCalendar()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
           <div class="card-body">
-            <div class="cal-nav">
-              <button class="cal-nav-btn" onclick="changeAdminMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-              <h3 id="adminCalTitle">—</h3>
-              <button class="cal-nav-btn" onclick="changeAdminMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            <div class="cal-wrap">
+              <div class="cal-loading" id="adminCalLoading"><div class="cal-loading-inner"><div class="rtcload-container"><div class="rtcload-floattext">PLEASE WAIT</div><div class="rtcload-block"><div class="rtcload-calicon"></div></div><div class="rtcload-mario"><div class="rtcload-cap"></div><div class="rtcload-face"><div class="rtcload-eyes"><div class="rtcload-eye"></div><div class="rtcload-eye"></div></div><div class="rtcload-nose"></div><div class="rtcload-smile"></div></div><div class="rtcload-body"><div class="rtcload-straps"></div><div class="rtcload-overalls"><div class="rtcload-buttons"></div><div class="rtcload-bodytext">RTC</div></div></div></div></div></div></div>
+              <div class="cal-nav">
+                <button class="cal-nav-btn" onclick="changeAdminMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <h3 id="adminCalTitle">—</h3>
+                <button class="cal-nav-btn" onclick="changeAdminMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+              <div class="cal-grid" id="adminCalDayLabels"></div>
+              <div class="cal-grid" id="adminCalGrid" style="margin-top:4px"></div>
             </div>
-            <div class="cal-grid" id="adminCalDayLabels"></div>
-            <div class="cal-grid" id="adminCalGrid" style="margin-top:4px"></div>
           </div>
         </div>
         <div class="card">
@@ -982,9 +1183,18 @@ function showAlert(id, msg, type) { const el = document.getElementById(id); if (
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
+// Local calendar-area loader (RTC mascot) — used instead of the global
+// full-page overlay for calendar fetches, so only the calendar card
+// dims/shows the animation instead of the whole screen.
+function showCalLoading(id) { const el = document.getElementById(id); if (el) el.classList.add('show'); }
+function hideCalLoading(id) { const el = document.getElementById(id); if (el) el.classList.remove('show'); }
+
 // ── API ───────────────────────────────────────────────────────
-function api(action, params, onSuccess, onError) {
-  showLoading();
+// skipGlobal: when true, suppresses the full-page loadingOverlay —
+// used by callers that show their own localized loader instead
+// (e.g. loadAdminCalendar/loadPublicCalendar with the RTC mascot loader).
+function api(action, params, onSuccess, onError, skipGlobal) {
+  if (!skipGlobal) showLoading();
   const body = Object.assign({ action: action }, params || {});
   fetch(GAS_URL, {
     method: 'POST',
@@ -992,9 +1202,9 @@ function api(action, params, onSuccess, onError) {
     body: JSON.stringify(body)
   })
   .then(function(r) { return r.json(); })
-  .then(function(data) { hideLoading(); if (onSuccess) onSuccess(data); })
+  .then(function(data) { if (!skipGlobal) hideLoading(); if (onSuccess) onSuccess(data); })
   .catch(function(err) {
-    hideLoading();
+    if (!skipGlobal) hideLoading();
     if (onError) onError(err);
     else toast('Network error: ' + err.message, 'error');
     console.error('[RTC API]', action, err);
@@ -1063,9 +1273,23 @@ function roomLabel()  { return App.currentRoom === 'conference' ? 'Conference Ro
 function roomIcon()   { return App.currentRoom === 'conference' ? '🏛️' : '🏢'; }
 function roomColor()  { return App.currentRoom === 'conference' ? '#1e40af' : '#800000'; }
 
+// Brief branded flash shown in the center of the screen while toggling
+// Showroom ↔ Conference — purely a transition cue, hides itself on a
+// fixed timer regardless of how long the underlying data reload takes.
+function showRoomTransition(room) {
+  const el = document.getElementById('roomTransition');
+  if (!el) return;
+  document.getElementById('roomTransitionIcon').textContent  = room === 'conference' ? '🏛️' : '🏢';
+  document.getElementById('roomTransitionLabel').textContent = 'Switching to ' + (room === 'conference' ? 'Conference Room' : 'Showroom') + '…';
+  el.classList.add('show');
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(function() { el.classList.remove('show'); }, 650);
+}
+
 function switchRoom(room) {
   if (App.currentRoom === room) return;
   App.currentRoom = room;
+  showRoomTransition(room);
   // Update logo text
   document.getElementById('logoRoomName').textContent = room === 'conference' ? 'RTC Conference' : 'RTC Showroom';
   // Show/hide banner
@@ -1085,6 +1309,8 @@ function switchRoom(room) {
   if (v === 'admin')   { loadAdminStats(); loadAdminToday(); }
   // If admin is on bookings/calendar tab, reload those too
   if (App.allBookings.length) loadAdminBookings();
+  const calPane = document.getElementById('adminPane-calendar');
+  if (calPane && calPane.classList.contains('active')) loadAdminCalendar();
 }
 
 // ── Views ─────────────────────────────────────────────────────
@@ -1099,7 +1325,13 @@ function showView(v) {
   window.scrollTo(0, 0);
   if (v === 'user')  { if (App.user)  { document.getElementById('userGreeting').textContent = 'Welcome back, ' + App.user.fullName + '!'; loadUserBookings(); } else showView('login'); }
   if (v === 'admin') { if (App.admin) { document.getElementById('adminGreeting').textContent = 'Logged in as: ' + App.admin.username; loadAdminStats(); loadAdminToday(); } else showView('login'); }
-  if (v === 'book')  { if (!App.user) { showView('login'); return; } prefillBookingForm(); resetBookingForm(); }
+  if (v === 'book')  {
+    if (!App.user) { showView('login'); return; }
+    const skel = document.getElementById('bookFormLoading');
+    if (skel) skel.classList.add('show');
+    prefillBookingForm();
+    resetBookingForm();
+  }
 }
 
 // ── PUBLIC DASHBOARD ──────────────────────────────────────────
@@ -1120,9 +1352,14 @@ function loadPublicDashboard() {
 function loadPublicCalendar() {
   const isConf = App.currentRoom === 'conference';
   const roomType = isConf ? (document.getElementById('pubRoomType').value || 'Masflex Room') : '';
+  showCalLoading('pubCalLoading');
   api(r_action('getPublicCalendarData'), { month: App.calMonth, year: App.calYear, roomType: roomType }, function(r) {
+    hideCalLoading('pubCalLoading');
     if (r && r.success) { App.calData = r.data; renderPublicCalendar(); }
-  });
+  }, function() {
+    hideCalLoading('pubCalLoading');
+    toast('Network error loading calendar.', 'error');
+  }, true);
 }
 function onPubRoomTypeChange() {
   loadPublicCalendar();
@@ -1133,7 +1370,17 @@ function changeMonth(dir) {
   App.calMonth += dir;
   if (App.calMonth > 12) { App.calMonth = 1; App.calYear++; }
   if (App.calMonth < 1)  { App.calMonth = 12; App.calYear--; }
+  // A previously-selected date's time slots would otherwise stay shown
+  // (stale, no longer for a visible date) after navigating to a
+  // different month — clear it, same as switchRoom() already does.
+  document.getElementById('slotPanel').innerHTML = '<div class="empty-state"><i class="fa-regular fa-calendar fa-2x"></i><p>Click a date to see available time slots.</p></div>';
   loadPublicCalendar();
+}
+
+// Markup for the "Checking Availability" clock loader shown in the Time
+// Slots panel while loadPublicSlots() is fetching.
+function slotLoadingHtml() {
+  return '<div class="slot-loading"><div class="rtcclock-base"><div class="rtcclock-center"></div><div class="rtcclock-hand rtcclock-hour"></div><div class="rtcclock-hand rtcclock-minute"></div></div><div style="text-align:center"><div class="rtcclock-title">Checking Availability</div><div class="rtcclock-sub">Reserving the best time…</div></div></div>';
 }
 
 function renderPublicCalendar() {
@@ -1170,7 +1417,7 @@ function loadPublicSlots(ds) {
   const panel = document.getElementById('slotPanel');
   const isConf = App.currentRoom === 'conference';
   const roomType = isConf ? (document.getElementById('pubRoomType').value || 'Masflex Room') : '';
-  panel.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+  panel.innerHTML = slotLoadingHtml();
   api(r_action('getPublicSlots'), { date: ds, roomType: roomType }, function(r) {
     const label = fmtDateLong(ds);
     let h = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div>`;
@@ -1370,14 +1617,19 @@ function resetBookingForm() {
 // ── CC OTHERS (user-side booking form) ────────────────────────
 var _bkUsers = [];
 var _bkCcList = [];
+function hideBookFormLoading() {
+  const skel = document.getElementById('bookFormLoading');
+  if (skel) skel.classList.remove('show');
+}
 function loadBkUserList() {
-  if (_bkUsers.length) return;
+  if (_bkUsers.length) { hideBookFormLoading(); return; }
   api('getRegisteredUsers', {}, function(r) {
+    hideBookFormLoading();
     if (r && r.success) {
       _bkUsers = r.users;
       document.getElementById('bkUserList').innerHTML = r.users.map(function(u) { return '<option value="'+u.email+'">'+u.fullName+'</option>'; }).join('');
     }
-  });
+  }, function() { hideBookFormLoading(); });
 }
 function addBkCc() {
   const input = document.getElementById('bkCcInput');
@@ -1999,9 +2251,14 @@ function doUpdateStatus() {
 
 // Admin Calendar
 function loadAdminCalendar() {
+  showCalLoading('adminCalLoading');
   api(r_action('getAdminCalendarData'), { month: App.adminCalMonth, year: App.adminCalYear }, function(r) {
+    hideCalLoading('adminCalLoading');
     if (r && r.success) { App.adminCalData = r.data; renderAdminCalendar(); }
-  });
+  }, function() {
+    hideCalLoading('adminCalLoading');
+    toast('Network error loading calendar.', 'error');
+  }, true);
 }
 function changeAdminMonth(dir) {
   App.adminCalMonth += dir;
