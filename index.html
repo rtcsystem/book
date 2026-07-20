@@ -1418,7 +1418,8 @@ const ROOM_ACTION_MAP = {
   'getAdminAllBookings':   'getAdminConferenceBookings',
   'updateBookingStatus':   'updateConferenceBookingStatus',
   'getAdminCalendarData':  'getAdminConferenceCalendarData',
-  'adminCreateBooking':    'adminCreateConferenceBooking'
+  'adminCreateBooking':    'adminCreateConferenceBooking',
+  'adminCreateBookingMultiDate': 'adminCreateConferenceBookingMultiDate'
 };
 function r_action(a) {
   return (App.currentRoom === 'conference' && ROOM_ACTION_MAP[a]) ? ROOM_ACTION_MAP[a] : a;
@@ -1652,8 +1653,9 @@ function prefillAndBook(ds, startTime) {
 
 function adminPrefillAndBook(ds, startTime) {
   openAdminCreateBooking();
-  document.getElementById('acDate').value = ds;
-  document.getElementById('acDate').min = new Date().toISOString().slice(0,10);
+  _acDatesList = [ds];
+  renderAcDateChips();
+  document.getElementById('acDateInput').min = new Date().toISOString().slice(0,10);
   document.getElementById('modalAdminCreate').classList.remove('hidden');
   loadAcSlots();
   if (startTime) {
@@ -2747,7 +2749,9 @@ function openAdminCreateBooking() {
   document.getElementById('acRoomTypeGroup').style.display = isConf ? '' : 'none';
   document.getElementById('acRoomType').value = '';
   document.getElementById('acEmail').value    = '';
-  document.getElementById('acDate').value       = '';
+  _acDatesList = [];
+  renderAcDateChips();
+  document.getElementById('acDateInput').value = '';
   document.getElementById('acTitle').value      = '';
   document.getElementById('acPurpose').value    = '';
   document.getElementById('acClientName').value = '';
@@ -2774,8 +2778,38 @@ function openAdminCreateBooking() {
     });
   }
   // Set min date to today
-  document.getElementById('acDate').min = new Date().toISOString().slice(0,10);
+  document.getElementById('acDateInput').min = new Date().toISOString().slice(0,10);
   document.getElementById('modalAdminCreate').classList.remove('hidden');
+}
+
+// ── DATE(S) (admin create-booking modal) ───────────────────────
+// Up to 6 dates, same start/end time applied to each — see
+// adminCreateBookingMultiDate()/adminCreateConferenceBookingMultiDate()
+// on the backend, which book each date independently and report back
+// a per-date success/fail breakdown.
+var _acDatesList = [];
+function addAcDate() {
+  const input = document.getElementById('acDateInput');
+  const val = input.value;
+  if (!val) return;
+  if (_acDatesList.indexOf(val) !== -1) { input.value = ''; return; }
+  if (_acDatesList.length >= 6) { showAlert('acAlert', 'You can add up to 6 dates only.', 'error'); return; }
+  _acDatesList.push(val);
+  _acDatesList.sort();
+  input.value = '';
+  renderAcDateChips();
+  loadAcSlots();
+}
+function removeAcDate(d) {
+  _acDatesList = _acDatesList.filter(function(x) { return x !== d; });
+  renderAcDateChips();
+  loadAcSlots();
+}
+function renderAcDateChips() {
+  document.getElementById('acDateChips').innerHTML = _acDatesList.map(function(d) {
+    return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3f4f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#374151">' + fmtDate(d)
+      + '<button type="button" onclick="removeAcDate(\'' + d + '\')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-weight:700;padding:0;line-height:1">&times;</button></span>';
+  }).join('');
 }
 
 // ── CC OTHERS (admin create-booking modal) ────────────────────
@@ -2821,10 +2855,15 @@ function lookupAcUser() {
 }
 
 function loadAcSlots() {
-  const dateVal = document.getElementById('acDate').value;
+  const dateVal = _acDatesList[0];
   const isConf   = App.currentRoom === 'conference';
   const roomType = isConf ? document.getElementById('acRoomType').value : '';
-  if (!dateVal) return;
+  if (!dateVal) {
+    document.getElementById('acSlotInfo').textContent = '';
+    document.getElementById('acStart').innerHTML = '<option value="">Add a date first</option>';
+    document.getElementById('acEnd').innerHTML   = '<option value="">Add a date first</option>';
+    return;
+  }
   if (isConf && !roomType) {
     document.getElementById('acSlotInfo').textContent = 'Select a Room Type first.';
     document.getElementById('acStart').innerHTML = '<option value="">Select a room first</option>';
@@ -2832,6 +2871,7 @@ function loadAcSlots() {
     return;
   }
   document.getElementById('acSlotInfo').textContent = 'Loading slots…';
+  const multiNote = _acDatesList.length > 1 ? ' Other selected dates are checked individually when you submit.' : '';
   api(r_action('getPublicSlots'), { date: dateVal, roomType: roomType }, function(r) {
     const bookedBlocks = (r && r.success) ? r.bookedBlocks : [];
     const startSel = document.getElementById('acStart');
@@ -2847,13 +2887,13 @@ function loadAcSlots() {
     }
     endSel.innerHTML = '<option value="">-- End Time --</option>';
     const booked = bookedBlocks.length;
-    document.getElementById('acSlotInfo').textContent = booked ? booked+' block(s) already booked on this day.' : 'No bookings on this day yet.';
+    document.getElementById('acSlotInfo').textContent = (booked ? booked+' block(s) already booked on '+fmtDate(dateVal)+'.' : 'No bookings on '+fmtDate(dateVal)+' yet.') + multiNote;
   });
 }
 
 function updateAcEndTimes() {
   const startVal = document.getElementById('acStart').value;
-  const dateVal  = document.getElementById('acDate').value;
+  const dateVal  = _acDatesList[0];
   const isConf   = App.currentRoom === 'conference';
   const roomType = isConf ? document.getElementById('acRoomType').value : '';
   const endSel   = document.getElementById('acEnd');
@@ -2888,7 +2928,6 @@ function timeStrToMinJs(s) {
 
 function doAdminCreateBooking() {
   const email       = document.getElementById('acEmail').value.trim();
-  const date        = document.getElementById('acDate').value;
   const start       = document.getElementById('acStart').value;
   const end         = document.getElementById('acEnd').value;
   const title       = document.getElementById('acTitle').value.trim();
@@ -2903,7 +2942,7 @@ function doAdminCreateBooking() {
   const roomType = isConf ? document.getElementById('acRoomType').value : '';
   if (!email)      { showAlert('acAlert','User email is required.','error'); return; }
   if (isConf && !roomType) { showAlert('acAlert','Please select a Room Type.','error'); return; }
-  if (!date)       { showAlert('acAlert','Select a date.','error'); return; }
+  if (_acDatesList.length === 0) { showAlert('acAlert','Add at least one date (up to 6).','error'); return; }
   if (!start)      { showAlert('acAlert','Select a start time.','error'); return; }
   if (!end)        { showAlert('acAlert','Select an end time.','error'); return; }
   if (!purpose)    { showAlert('acAlert','Agenda is required.','error'); return; }
@@ -2911,17 +2950,26 @@ function doAdminCreateBooking() {
   if (!guests)     { showAlert('acAlert','Guest Names are required.','error'); return; }
   if (mealChecked && !mealRemarks) { showAlert('acAlert','Please specify meal remarks.','error'); return; }
   setBtnLoading('btnAcSubmit', true);
-  api(r_action('adminCreateBooking'), {
+  api(r_action('adminCreateBookingMultiDate'), {
     adminUsername: App.admin.username,
-    userEmail: email, bookingDate: date,
+    userEmail: email, bookingDates: _acDatesList,
     startTime: start, endTime: end,
     title: title, purpose: purpose, guests: guests, remarks: remarks,
     clientName: clientName, mealRequest: mealRequest, ccEmails: _acCcList.join(','), roomType: roomType
   }, function(r) {
     setBtnLoading('btnAcSubmit', false);
-    if (r && r.success) {
-      toast('Booking created! Confirmation email sent to '+email, 'success');
-      closeModal('modalAdminCreate');
+    if (r && r.results) {
+      const okList  = r.results.filter(function(x) { return x.success; });
+      const badList = r.results.filter(function(x) { return !x.success; });
+      if (okList.length > 0) {
+        toast(okList.length + ' of ' + r.results.length + ' booking(s) created. Confirmation email(s) sent to ' + email, 'success');
+      }
+      if (badList.length === 0) {
+        closeModal('modalAdminCreate');
+      } else {
+        const lines = badList.map(function(x) { return fmtDate(x.date) + ': ' + x.message; }).join('<br>');
+        showAlert('acAlert', (okList.length > 0 ? okList.length + ' booked. ' : '') + badList.length + ' failed:<br>' + lines, okList.length > 0 ? 'warn' : 'error');
+      }
       loadAdminBookings(); loadAdminStats(); loadAdminToday();
     } else {
       showAlert('acAlert', (r && r.message) || 'Error creating booking.', 'error');
@@ -2937,7 +2985,7 @@ function doAdminCreateBooking() {
 // Everything else falls back to a guided reply with quick-reply chips —
 // it never guesses at an answer it isn't sure about.
 // ══════════════════════════════════════════════════════════════
-var ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0 };
+var ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0, adminChkRoom: null, pendingAdminSearch: false };
 var CHAT_ROOM_LABEL = { showroom: 'Showroom', masflex: 'Masflex Room', cascade: 'Cascade Room' };
 
 function toggleChatbot(force) {
@@ -2952,7 +3000,7 @@ function toggleChatbot(force) {
     // with a new greeting instead of resuming a stale, possibly-stuck flow.
     const box = document.getElementById('chatbotMessages');
     if (box) box.innerHTML = '';
-    ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0 };
+    ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0, adminChkRoom: null, pendingAdminSearch: false };
   }
   if (open) setTimeout(function() { const inp = document.getElementById('chatbotInput'); if (inp) inp.focus(); }, 50);
 }
@@ -2977,6 +3025,8 @@ function chatRoomChipsHtml() {
     + '<button class="chat-chip" onclick="chatPickRoom(\'showroom\')">🏢 Showroom</button>'
     + '<button class="chat-chip" onclick="chatPickRoom(\'masflex\')">🏛️ Masflex Room</button>'
     + '<button class="chat-chip" onclick="chatPickRoom(\'cascade\')">🏛️ Cascade Room</button>'
+    + (App.user  ? '<button class="chat-chip" onclick="chatShowMyBookings()">📋 My Bookings</button>' : '')
+    + (App.admin ? '<button class="chat-chip" onclick="chatAdminStartCheckBookings()">🔍 Check Bookings</button>' : '')
     + '</div>';
 }
 
@@ -3188,6 +3238,231 @@ function chatFetchAvailability(room, dateIso) {
   }, true);
 }
 
+// ── ADMIN-ONLY: Check Bookings (room+date lookup, or name/title search) ──
+// Entirely separate state (adminChkRoom / pendingAdminSearch) from the
+// regular pendingRoom/pendingDate availability flow above, so the two
+// never collide. Every lookup here hits the live admin endpoints — it
+// never trusts App.allBookings, which is only ever populated for whichever
+// single room tab the admin happens to have open in the dashboard.
+function chatAdminRoomChipsHtml() {
+  return '<div class="chat-quick-replies">'
+    + '<button class="chat-chip" onclick="chatAdminPickRoom(\'showroom\')">🏢 Showroom</button>'
+    + '<button class="chat-chip" onclick="chatAdminPickRoom(\'masflex\')">🏛️ Masflex Room</button>'
+    + '<button class="chat-chip" onclick="chatAdminPickRoom(\'cascade\')">🏛️ Cascade Room</button>'
+    + '<button class="chat-chip" onclick="chatAdminPickRoom(\'all\')">🗂️ All Rooms</button>'
+    + '</div>';
+}
+var _chatAdminDateSeq = 0;
+function chatAdminDateChipsHtml() {
+  const id = 'chatAdminDateInput_' + (++_chatAdminDateSeq);
+  return '<div class="chat-quick-replies">'
+    + '<button class="chat-chip" onclick="chatAdminPickDateOffset(0)">Today</button>'
+    + '<button class="chat-chip" onclick="chatAdminPickDateOffset(1)">Tomorrow</button>'
+    + '</div>'
+    + '<div class="chat-date-row">'
+    + '<input type="date" id="' + id + '">'
+    + '<button onclick="chatAdminSubmitDateInput(\'' + id + '\')">Check</button>'
+    + '</div>';
+}
+
+function chatAdminStartCheckBookings() {
+  if (!App.admin) return;
+  addChatMsg('🔍 Check Bookings', 'user');
+  ChatBot.adminChkRoom = null;
+  ChatBot.pendingAdminSearch = true;
+  addChatMsg('Sure — pick a room to check by date, or just type a guest/employee name or booking title to search across all bookings.' + chatAdminRoomChipsHtml(), 'bot');
+}
+
+function chatAdminPickRoom(room) {
+  if (!App.admin) return;
+  addChatMsg(room === 'all' ? 'All Rooms' : CHAT_ROOM_LABEL[room], 'user');
+  ChatBot.adminChkRoom = room;
+  ChatBot.pendingAdminSearch = true;
+  addChatMsg('Which date? Or type a name/title instead to search ' + (room === 'all' ? 'across all rooms' : CHAT_ROOM_LABEL[room]) + '.' + chatAdminDateChipsHtml(), 'bot');
+}
+
+function chatAdminPickDateOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const iso = chatIsoDate(d);
+  addChatMsg(days === 0 ? 'Today' : 'Tomorrow', 'user');
+  chatAdminResolveDate(iso);
+}
+
+function chatAdminSubmitDateInput(id) {
+  const el = document.getElementById(id);
+  if (!el || !el.value) return;
+  addChatMsg(chatFriendlyDate(el.value), 'user');
+  chatAdminResolveDate(el.value);
+}
+
+function chatAdminResolveDate(iso) {
+  ChatBot.pendingAdminSearch = false;
+  chatAdminFetchBookings(ChatBot.adminChkRoom, iso);
+}
+
+// Fetches the raw admin booking lists needed for a lookup — 'showroom'
+// pulls getAdminAllBookings only, 'conference' pulls getAdminConferenceBookings
+// only (already covers both Masflex and Cascade), 'both' pulls both endpoints
+// and merges. Deliberately calls these actions directly (not via r_action())
+// since the chat flow lets the admin pick a room independent of whichever
+// room tab happens to be active in the dashboard right now.
+function chatAdminFetchRaw_(which, cb) {
+  var showroomBookings = null, confBookings = null, pending = 0;
+  function done() {
+    var all = [];
+    if (showroomBookings) all = all.concat(showroomBookings);
+    if (confBookings)     all = all.concat(confBookings);
+    cb(all);
+  }
+  if (which === 'showroom' || which === 'both') {
+    pending++;
+    api('getAdminAllBookings', {}, function(r) { showroomBookings = (r && r.success) ? r.bookings : []; if (--pending === 0) done(); }, function() { showroomBookings = []; if (--pending === 0) done(); }, true);
+  }
+  if (which === 'conference' || which === 'both') {
+    pending++;
+    api('getAdminConferenceBookings', {}, function(r) { confBookings = (r && r.success) ? r.bookings : []; if (--pending === 0) done(); }, function() { confBookings = []; if (--pending === 0) done(); }, true);
+  }
+}
+function chatAdminWhichFor_(room) {
+  if (room === 'showroom') return 'showroom';
+  if (room === 'masflex' || room === 'cascade') return 'conference';
+  return 'both';
+}
+
+// Pending needs admin attention, so it always sorts to the top; Confirmed
+// ("Done") next; anything else (e.g. Completed) last.
+function chatAdminStatusRank_(status) {
+  if (status === 'Pending')   return 0;
+  if (status === 'Confirmed') return 1;
+  return 2;
+}
+
+// One booking's full detail card in an admin lookup/search result list.
+function chatAdminBookingLineHtml(b) {
+  const statusColor = b.status === 'Confirmed' ? '#16a34a' : (b.status === 'Pending' ? '#d97706' : '#6b7280');
+  return '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
+    + '<div><strong>' + escHtml(b.fullName || '—') + '</strong>' + (b.roomType ? ' · ' + escHtml(b.roomType) : '') + ' <span style="float:right;font-weight:700;color:' + statusColor + '">' + escHtml(b.status || '') + '</span></div>'
+    + '<div>📅 ' + escHtml(fmtDate(b.bookingDate)) + ' · 🕒 ' + escHtml(b.timeRange || '') + '</div>'
+    + '<div style="color:#6b7280">ID: ' + escHtml(b.bookingId || '—') + (b.email ? ' · ' + escHtml(b.email) : '') + '</div>'
+    + (b.title       ? '<div><strong>' + escHtml(b.title) + '</strong></div>' : '')
+    + (b.purpose     ? '<div>📝 ' + escHtml(b.purpose) + '</div>' : '')
+    + (b.clientName  ? '<div>🤝 Client: ' + escHtml(b.clientName) + '</div>' : '')
+    + (b.guests      ? '<div>👥 Guests: ' + escHtml(b.guests) + '</div>' : '')
+    + (b.mealRequest ? '<div>🍽️ Meal: ' + escHtml(b.mealRequest) + '</div>' : '')
+    + (b.remarks     ? '<div>🗒️ Remarks: ' + escHtml(b.remarks) + '</div>' : '')
+    + (b.ccEmails    ? '<div>✉️ CC: ' + escHtml(b.ccEmails) + '</div>' : '')
+    + '</div>';
+}
+
+function chatAdminFetchBookings(room, dateIso) {
+  if (!App.admin) return;
+  chatTypingStart();
+  const label = room === 'all' ? 'All Rooms' : CHAT_ROOM_LABEL[room];
+  const when  = chatFriendlyDate(dateIso);
+  chatAdminFetchRaw_(chatAdminWhichFor_(room), function(all) {
+    chatTypingStop();
+    let list = all.filter(function(b) { return b.bookingDate === dateIso && b.status !== 'Cancelled'; });
+    if (room === 'masflex') list = list.filter(function(b) { return b.roomType === 'Masflex Room'; });
+    if (room === 'cascade') list = list.filter(function(b) { return b.roomType === 'Cascade Room'; });
+    if (list.length === 0) {
+      addChatMsg('📋 No bookings found for <strong>' + label + '</strong> on ' + when + '.' + chatAdminRoomChipsHtml(), 'bot');
+      return;
+    }
+    list.sort(function(a, b) {
+      const r = chatAdminStatusRank_(a.status) - chatAdminStatusRank_(b.status);
+      return r !== 0 ? r : timeStrToMinJs(a.startTime) - timeStrToMinJs(b.startTime);
+    });
+    const rows = list.map(chatAdminBookingLineHtml).join('');
+    addChatMsg('📋 <strong>' + list.length + ' booking(s)</strong> for <strong>' + label + '</strong> on ' + when + ' — Pending first, then Confirmed:' + rows
+      + '<div class="chat-quick-replies"><button class="chat-chip" onclick="chatAdminStartCheckBookings()">Check another</button></div>', 'bot');
+  });
+}
+
+function chatAdminSearchBookings(query, room) {
+  if (!App.admin) return;
+  const q = (query || '').trim();
+  if (!q) { addChatMsg('Type a name, email, or booking title to search.' + chatAdminRoomChipsHtml(), 'bot'); return; }
+  chatTypingStart();
+  const label = (!room || room === 'all') ? 'all rooms' : CHAT_ROOM_LABEL[room];
+  chatAdminFetchRaw_(chatAdminWhichFor_(room || 'all'), function(all) {
+    chatTypingStop();
+    const qLower = q.toLowerCase();
+    let list = all.filter(function(b) {
+      if (b.status === 'Cancelled') return false;
+      const hay = ((b.fullName || '') + ' ' + (b.email || '') + ' ' + (b.title || '') + ' ' + (b.clientName || '')).toLowerCase();
+      return hay.indexOf(qLower) !== -1;
+    });
+    if (room === 'masflex') list = list.filter(function(b) { return b.roomType === 'Masflex Room'; });
+    if (room === 'cascade') list = list.filter(function(b) { return b.roomType === 'Cascade Room'; });
+    list.sort(function(a, b) {
+      const r = chatAdminStatusRank_(a.status) - chatAdminStatusRank_(b.status);
+      return r !== 0 ? r : new Date(b.bookingDate) - new Date(a.bookingDate);
+    });
+    const shown = list.slice(0, 8);
+    if (shown.length === 0) {
+      addChatMsg('📋 No bookings matching "' + escHtml(q) + '" in ' + label + '.' + chatAdminRoomChipsHtml(), 'bot');
+      return;
+    }
+    const rows = shown.map(chatAdminBookingLineHtml).join('');
+    const more = list.length > shown.length ? '<div style="font-size:11.5px;color:#6b7280;margin-top:4px">+' + (list.length - shown.length) + ' more not shown.</div>' : '';
+    addChatMsg('📋 <strong>' + list.length + ' match(es)</strong> for "' + escHtml(q) + '" in ' + label + ':' + rows + more
+      + '<div class="chat-quick-replies"><button class="chat-chip" onclick="chatAdminStartCheckBookings()">Search again</button></div>', 'bot');
+  });
+}
+
+// ── MY BOOKINGS (regular logged-in user, including bookings they're CC'd
+// on) — shows a quick summary right in the chat, each entry clickable
+// straight into the real My Bookings view for the full card (reschedule/
+// cancel/edit actions live there, not in the chat). Fetches both rooms
+// directly (not via r_action()) so it's a complete picture regardless of
+// which room tab happens to be active right now.
+function chatFetchUserBookingsRaw_(cb) {
+  var sh = null, cf = null, pending = 2;
+  function done() {
+    var all = [];
+    if (sh) all = all.concat(sh);
+    if (cf) all = all.concat(cf);
+    cb(all);
+  }
+  api('getUserBookings', { userId: App.user.userId, email: App.user.email }, function(r) { sh = (r && r.success) ? r.bookings : []; if (--pending === 0) done(); }, function() { sh = []; if (--pending === 0) done(); }, true);
+  api('getUserConferenceBookings', { userId: App.user.userId, email: App.user.email }, function(r) { cf = (r && r.success) ? r.bookings : []; if (--pending === 0) done(); }, function() { cf = []; if (--pending === 0) done(); }, true);
+}
+
+function chatMyBookingLineHtml(b) {
+  const statusColor = b.status === 'Confirmed' ? '#16a34a' : (b.status === 'Pending' ? '#d97706' : '#6b7280');
+  return '<div onclick="showView(\'user\')" style="cursor:pointer;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
+    + '<div><strong>' + escHtml(b.title || b.purpose || 'Booking') + '</strong> <span style="float:right;font-weight:700;color:' + statusColor + '">' + escHtml(b.status || '') + '</span></div>'
+    + '<div>' + (b.roomType ? '🏛️ ' + escHtml(b.roomType) : '🏢 Showroom') + ' · 📅 ' + escHtml(fmtDate(b.bookingDate)) + ' · 🕒 ' + escHtml(b.timeRange || '') + '</div>'
+    + (b.isCc ? '<div style="color:#1e40af;font-weight:600">CC\'d — booked by ' + escHtml(b.fullName || '') + '</div>' : '')
+    + '</div>';
+}
+
+function chatShowMyBookings() {
+  if (!App.user) return;
+  addChatMsg('📋 My Bookings', 'user');
+  chatTypingStart();
+  chatFetchUserBookingsRaw_(function(all) {
+    chatTypingStop();
+    const list = all.filter(function(b) { return b.status !== 'Cancelled'; });
+    if (list.length === 0) {
+      addChatMsg('You don\'t have any bookings yet — want to check a room\'s availability?' + chatRoomChipsHtml(), 'bot');
+      return;
+    }
+    const today = todayStr();
+    list.sort(function(a, b) {
+      const aUp = a.bookingDate >= today, bUp = b.bookingDate >= today;
+      if (aUp !== bUp) return aUp ? -1 : 1;
+      return aUp ? (new Date(a.bookingDate) - new Date(b.bookingDate)) : (new Date(b.bookingDate) - new Date(a.bookingDate));
+    });
+    const shown = list.slice(0, 8);
+    const rows = shown.map(chatMyBookingLineHtml).join('');
+    const more = list.length > shown.length ? '<div style="font-size:11.5px;color:#6b7280;margin-top:4px">+' + (list.length - shown.length) + ' more — open My Bookings to see all.</div>' : '';
+    addChatMsg('📋 <strong>' + list.length + ' booking(s)</strong> — tap one, or open My Bookings for reschedule/cancel:' + rows + more
+      + '<div class="chat-quick-replies"><button class="chat-chip" onclick="showView(\'user\')">Open My Bookings</button></div>', 'bot');
+  });
+}
+
 // Lightweight keyword + date parsing — not real NLU. Handles: room name
 // (showroom/masflex/cascade), "today"/"tomorrow", ISO dates, mm/dd(/yyyy),
 // and "Month Day". Anything it can't confidently parse falls back to the
@@ -3287,6 +3562,16 @@ function sendChatbotMessage() {
     return;
   }
   if (chatIsGibberish(lower)) { addChatMsg('KALOKOHAN', 'bot'); return; }
+
+  // Admin's "Check Bookings" flow is waiting on this exact message — treat
+  // it as a name/title search (scoped to whichever room they already
+  // picked, if any) rather than running it through the regular intent
+  // parsing below.
+  if (ChatBot.pendingAdminSearch && App.admin) {
+    ChatBot.pendingAdminSearch = false;
+    chatAdminSearchBookings(text, ChatBot.adminChkRoom);
+    return;
+  }
 
   const greeting = chatParseGreeting(lower);
   if (greeting) {
@@ -3435,11 +3720,15 @@ function sendChatbotMessage() {
           <option value="Cascade Room">Cascade Room</option>
         </select>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Date <span>*</span></label>
-          <input class="form-control" type="date" id="acDate" onchange="loadAcSlots()">
+      <div class="form-group">
+        <label>Date(s) <span>*</span> <span style="font-weight:400;color:var(--gray-400)">— up to 6, same time slot applied to each</span></label>
+        <div style="display:flex;gap:8px">
+          <input class="form-control" type="date" id="acDateInput" style="flex:1">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addAcDate()" style="white-space:nowrap">+ Add Date</button>
         </div>
+        <div id="acDateChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label>Start Time <span>*</span></label>
           <select class="form-control" id="acStart" onchange="updateAcEndTimes()"></select>
@@ -3499,7 +3788,7 @@ function sendChatbotMessage() {
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalAdminCreate')">Cancel</button>
-      <button class="btn btn-primary" onclick="doAdminCreateBooking()" id="btnAcSubmit"><i class="fa-solid fa-calendar-plus"></i> Create Booking</button>
+      <button class="btn btn-primary" onclick="doAdminCreateBooking()" id="btnAcSubmit"><i class="fa-solid fa-calendar-plus"></i> Create Booking(s)</button>
     </div>
   </div>
 </div>
