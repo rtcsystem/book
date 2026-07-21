@@ -3548,20 +3548,20 @@ function sendChatbotMessage() {
   const norm = lower.replace(/\s+/g, ' ').trim();
   ChatBot.repeatStreak = (norm && norm === ChatBot.lastMsgNorm) ? ChatBot.repeatStreak + 1 : 1;
   ChatBot.lastMsgNorm = norm;
-  if (ChatBot.repeatStreak >= 3) { addChatMsg('TANGA', 'bot'); return; }
+  if (ChatBot.repeatStreak >= 3) { addChatMsg('hehehe', 'bot'); return; }
 
   if (chatIsDoItYourself(lower)) {
     ChatBot.doItYourselfCount++;
-    addChatMsg(ChatBot.doItYourselfCount >= 3 ? 'TANGA' : 'No. You do it yourself.', 'bot');
+    addChatMsg(ChatBot.doItYourselfCount >= 3 ? 'hehehe' : 'No. You do it yourself.', 'bot');
     return;
   }
   if (chatIsMayPasok(lower)) { addChatMsg('SMTD', 'bot'); return; }
   if (chatIsSalaryTalk(lower)) {
     ChatBot.salaryHitCount++;
-    addChatMsg(ChatBot.salaryHitCount > 1 ? 'TANGA' : 'KALOKOHAN', 'bot');
+    addChatMsg(ChatBot.salaryHitCount > 1 ? 'hehehe' : 'SMTD', 'bot');
     return;
   }
-  if (chatIsGibberish(lower)) { addChatMsg('KALOKOHAN', 'bot'); return; }
+  if (chatIsGibberish(lower)) { addChatMsg('SMTD', 'bot'); return; }
 
   // Admin's "Check Bookings" flow is waiting on this exact message — treat
   // it as a name/title search (scoped to whichever room they already
