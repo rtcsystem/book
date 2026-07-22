@@ -1993,7 +1993,7 @@ function renderBookingCards(id, bookings, showActions) {
     h += `<div class="booking-card${isPending?' pending-card':''}">
       <div class="booking-card-header">
         <div>
-          <div class="booking-id">ID: ${b.bookingId}${b.isCc ? ' <span style="color:#1e40af;font-weight:700">· CC\'d — booked by ' + escHtml(b.fullName) + '</span>' : ''}</div>
+          <div class="booking-id">ID: ${b.bookingId}${b.isCc ? ' <span style="color:#1e40af;font-weight:700">· CC\'d — booked by ' + escHtml(b.fullName) + (b.isRoomCc ? ' (view only)' : '') + '</span>' : ''}</div>
           <div class="booking-date"><i class="fa-solid fa-calendar" style="margin-right:6px"></i>${fmtDate(b.bookingDate)}</div>
         </div>
         ${statusBadge(b.status)}
@@ -2005,7 +2005,7 @@ function renderBookingCards(id, bookings, showActions) {
       ${b.guests  ? `<div class="booking-remarks"><i class="fa-solid fa-users" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
       ${b.remarks ? `<div class="booking-remarks"><i class="fa-solid fa-note-sticky" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.remarks)}</div>` : ''}
       ${isPending ? `<div class="alert alert-warn" style="padding:8px 12px;margin-bottom:10px;font-size:12px"><i class="fa-solid fa-hourglass-half"></i> Awaiting admin approval</div>` : ''}
-      ${showActions && (b.status === 'Confirmed' || b.status === 'Pending') ? `
+      ${showActions && !b.isRoomCc && (b.status === 'Confirmed' || b.status === 'Pending') ? `
       <div class="booking-actions">
         ${b.status === 'Confirmed' ? `<button class="btn btn-outline btn-sm" onclick="openReschedule('${b.bookingId}')"><i class="fa-solid fa-calendar-pen"></i> Reschedule</button>` : ''}
         <button class="btn btn-outline btn-sm" onclick="openEditDetails('${b.bookingId}', false)"><i class="fa-solid fa-file-pen"></i> Edit Details</button>
@@ -3434,7 +3434,7 @@ function chatMyBookingLineHtml(b) {
   return '<div onclick="showView(\'user\')" style="cursor:pointer;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
     + '<div><strong>' + escHtml(b.title || b.purpose || 'Booking') + '</strong> <span style="float:right;font-weight:700;color:' + statusColor + '">' + escHtml(b.status || '') + '</span></div>'
     + '<div>' + (b.roomType ? '🏛️ ' + escHtml(b.roomType) : '🏢 Showroom') + ' · 📅 ' + escHtml(fmtDate(b.bookingDate)) + ' · 🕒 ' + escHtml(b.timeRange || '') + '</div>'
-    + (b.isCc ? '<div style="color:#1e40af;font-weight:600">CC\'d — booked by ' + escHtml(b.fullName || '') + '</div>' : '')
+    + (b.isCc ? '<div style="color:#1e40af;font-weight:600">CC\'d — booked by ' + escHtml(b.fullName || '') + (b.isRoomCc ? ' (view only)' : '') + '</div>' : '')
     + '</div>';
 }
 
