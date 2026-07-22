@@ -735,9 +735,32 @@ tr.row-pending:hover td { background: #fef9c3; }
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchUserTab('upcoming')" id="userTab-upcoming"><i class="fa-solid fa-calendar-check"></i> Upcoming</button>
       <button class="tab-btn" onclick="switchUserTab('history')" id="userTab-history"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+      <button class="tab-btn" onclick="switchUserTab('calendar')" id="userTab-calendar"><i class="fa-solid fa-calendar-days"></i> Calendar</button>
     </div>
     <div class="tab-pane active" id="userPane-upcoming"><div id="userUpcomingList"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></div></div>
     <div class="tab-pane" id="userPane-history"><div id="userHistoryList"><div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div></div></div>
+    <div class="tab-pane" id="userPane-calendar">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Monthly View</h2></div>
+          <div class="card-body">
+            <div class="cal-wrap">
+              <div class="cal-nav">
+                <button class="cal-nav-btn" onclick="changeUserCalMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <h3 id="userCalTitle">—</h3>
+                <button class="cal-nav-btn" onclick="changeUserCalMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+              <div class="cal-grid" id="userCalDayLabels"></div>
+              <div class="cal-grid" id="userCalGrid" style="margin-top:4px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2><i class="fa-solid fa-list-check"></i> Day Detail</h2></div>
+          <div class="card-body" id="userCalDayPanel"><div class="empty-state"><i class="fa-regular fa-calendar fa-2x"></i><p>Click a date to see bookings.</p></div></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1202,6 +1225,8 @@ const App = {
   adminCalMonth: new Date().getMonth() + 1,
   adminCalYear:  new Date().getFullYear(),
   adminCalData:  {},
+  userCalMonth: new Date().getMonth() + 1,
+  userCalYear:  new Date().getFullYear(),
   allBookings:     [],
   userBookings:    [],
   bookedBlocks:    [],   // for booking form
@@ -1214,7 +1239,7 @@ const DAY_LBL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // ── Init ──────────────────────────────────────────────────────
 window.onload = function() {
-  ['calDayLabels','adminCalDayLabels'].forEach(function(id) {
+  ['calDayLabels','adminCalDayLabels','userCalDayLabels'].forEach(function(id) {
     const el = document.getElementById(id);
     DAY_LBL.forEach(function(d) { const s = document.createElement('div'); s.className = 'cal-day-label'; s.textContent = d; el.appendChild(s); });
   });
@@ -1956,10 +1981,11 @@ function doCreateBooking() {
 
 // ── USER BOOKINGS ─────────────────────────────────────────────
 function switchUserTab(tab) {
-  ['upcoming','history'].forEach(function(t) {
+  ['upcoming','history','calendar'].forEach(function(t) {
     document.getElementById('userTab-'  + t).classList.toggle('active', t === tab);
     document.getElementById('userPane-' + t).classList.toggle('active', t === tab);
   });
+  if (tab === 'calendar') renderUserCalendar();
 }
 
 function loadUserBookings() {
@@ -1967,12 +1993,71 @@ function loadUserBookings() {
     App.userBookings = (r && r.success) ? r.bookings : [];
     renderUserUpcoming();
     renderUserHistory();
+    renderUserCalendar();
   });
+}
+
+// ── USER CALENDAR ──────────────────────────────────────────────
+// Built entirely from App.userBookings (already loaded by
+// loadUserBookings() above) — no separate backend call needed, since
+// that list is already scoped by the backend to only this user's own
+// bookings plus whatever they're legitimately CC'd on. Same data, same
+// scope, as the Upcoming/History tabs — just grouped onto a month grid.
+function changeUserCalMonth(dir) {
+  App.userCalMonth += dir;
+  if (App.userCalMonth > 12) { App.userCalMonth = 1; App.userCalYear++; }
+  if (App.userCalMonth < 1)  { App.userCalMonth = 12; App.userCalYear--; }
+  renderUserCalendar();
+}
+
+function renderUserCalendar() {
+  const grid = document.getElementById('userCalGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  document.getElementById('userCalTitle').textContent = MONTHS[App.userCalMonth-1] + ' ' + App.userCalYear;
+  const firstDay    = new Date(App.userCalYear, App.userCalMonth-1, 1).getDay();
+  const daysInMonth = new Date(App.userCalYear, App.userCalMonth, 0).getDate();
+  const today = todayStr();
+  const byDate = {};
+  (App.userBookings || []).forEach(function(b) {
+    (byDate[b.bookingDate] = byDate[b.bookingDate] || []).push(b);
+  });
+  for (let i = 0; i < firstDay; i++) { const e = document.createElement('div'); e.className = 'cal-day cal-empty'; grid.appendChild(e); }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds  = App.userCalYear + '-' + String(App.userCalMonth).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const bks = byDate[ds] || [];
+    const pending = bks.filter(function(b) { return b.status === 'Pending'; }).length;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    if (ds === today) cell.classList.add('cal-today');
+    cell.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-badges">${bks.length > 0 ? `<div class="cal-badge cal-badge-booked">${bks.length} Booking${bks.length>1?'s':''}</div>` : ''}${pending > 0 ? `<div class="cal-badge" style="background:#fef3c7;color:#92400e">${pending} Pending</div>` : ''}</div>`;
+    cell.onclick = (function(dateStr, dayBks) { return function() { selectUserCalDate(dateStr, dayBks); }; })(ds, bks);
+    grid.appendChild(cell);
+  }
+}
+
+function selectUserCalDate(ds, bookings) {
+  document.querySelectorAll('#userCalGrid .cal-day').forEach(function(el) { el.classList.remove('cal-selected'); });
+  const d = parseInt(ds.split('-')[2]);
+  const cells = document.querySelectorAll('#userCalGrid .cal-day:not(.cal-empty)');
+  if (cells[d-1]) cells[d-1].classList.add('cal-selected');
+  const panel = document.getElementById('userCalDayPanel');
+  const label = fmtDateLong(ds);
+  if (!bookings || bookings.length === 0) {
+    panel.innerHTML = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div><div class="empty-state" style="padding:24px"><p>No bookings on this date.</p></div>`;
+    return;
+  }
+  panel.innerHTML = `<div class="slot-panel-header"><i class="fa-solid fa-calendar-day"></i>${label}</div><div id="userCalDayList"></div>`;
+  renderBookingCards('userCalDayList', bookings, ds >= todayStr());
 }
 
 function renderUserUpcoming() {
   const today = todayStr();
   const bks = App.userBookings.filter(function(b) { return b.bookingDate >= today && b.status !== 'Cancelled'; });
+  // Soonest date first — the backend list comes back newest-first (correct
+  // for History), so Upcoming needs its own ascending sort here instead of
+  // just reusing that order as-is.
+  bks.sort(function(a, b) { return new Date(a.bookingDate) - new Date(b.bookingDate); });
   renderBookingCards('userUpcomingList', bks, true);
 }
 function renderUserHistory() {
