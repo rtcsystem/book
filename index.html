@@ -2088,6 +2088,8 @@ function renderBookingCards(id, bookings, showActions) {
       ${b.title ? `<div class="booking-title">${b.title}</div>` : ''}
       <div class="booking-purpose text-muted">${b.purpose}</div>
       ${b.guests  ? `<div class="booking-remarks"><i class="fa-solid fa-users" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
+      ${b.clientName ? `<div class="booking-remarks"><i class="fa-solid fa-user-tie" style="margin-right:5px;color:#9ca3af"></i>Client: ${escHtml(b.clientName)}</div>` : ''}
+      <div class="booking-remarks"><i class="fa-solid fa-utensils" style="margin-right:5px;color:#9ca3af"></i>Meal Request: ${b.mealRequest ? escHtml(b.mealRequest) : 'No'}</div>
       ${b.remarks ? `<div class="booking-remarks"><i class="fa-solid fa-note-sticky" style="margin-right:5px;color:#9ca3af"></i>${escHtml(b.remarks)}</div>` : ''}
       ${isPending ? `<div class="alert alert-warn" style="padding:8px 12px;margin-bottom:10px;font-size:12px"><i class="fa-solid fa-hourglass-half"></i> Awaiting admin approval</div>` : ''}
       ${showActions && !b.isRoomCc && (b.status === 'Confirmed' || b.status === 'Pending') ? `
