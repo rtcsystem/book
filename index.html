@@ -2566,6 +2566,8 @@ function selectAdminDate(ds, bookings) {
       </div>
       <div class="text-sm"><strong>Agenda:</strong> ${b.purpose}</div>
       ${b.guests  ? `<div class="text-sm" style="margin-top:4px"><strong><i class="fa-solid fa-users" style="color:#6b7280;margin-right:4px"></i>Guests:</strong><br>${escHtml(b.guests).replace(/\n/g,'<br>')}</div>` : ''}
+      ${b.clientName ? `<div class="text-sm" style="margin-top:4px"><strong><i class="fa-solid fa-user-tie" style="color:#6b7280;margin-right:4px"></i>Client:</strong> ${escHtml(b.clientName)}</div>` : ''}
+      <div class="text-sm" style="margin-top:4px"><strong><i class="fa-solid fa-utensils" style="color:#6b7280;margin-right:4px"></i>Meal Request:</strong> ${b.mealRequest ? escHtml(b.mealRequest) : 'No'}</div>
       ${b.remarks ? `<div class="text-sm text-muted" style="margin-top:4px;font-style:italic;border-left:3px solid #e5e7eb;padding-left:6px">${escHtml(b.remarks)}</div>` : ''}
       <div class="booking-actions" style="margin-top:8px">
         ${isPending ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${b.bookingId}');loadAdminCalendar()"><i class="fa-solid fa-check"></i> Approve</button>
