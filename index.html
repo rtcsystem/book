@@ -891,13 +891,13 @@ tr.row-pending:hover td { background: #fef9c3; }
         </button>
       </div>
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-info"><p>Total</p><h3 id="aStatTotal">—</h3></div></div>
-        <div class="stat-card" style="border-color:#f59e0b"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-hourglass-half"></i></div><div class="stat-info"><p>Pending</p><h3 id="aStatPending" style="color:#d97706">—</h3></div></div>
-        <div class="stat-card" style="border-color:#2563eb"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-circle-check"></i></div><div class="stat-info"><p>Confirmed</p><h3 id="aStatConfirmed" style="color:#2563eb">—</h3></div></div>
-        <div class="stat-card" style="border-color:#16a34a"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-check-double"></i></div><div class="stat-info"><p>Completed</p><h3 id="aStatCompleted" style="color:#16a34a">—</h3></div></div>
-        <div class="stat-card" style="border-color:#dc2626"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-xmark"></i></div><div class="stat-info"><p>Cancelled</p><h3 id="aStatCancelled" style="color:#dc2626">—</h3></div></div>
-        <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div><div class="stat-info"><p>Today</p><h3 id="aStatToday">—</h3></div></div>
-        <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-week"></i></div><div class="stat-info"><p>This Month</p><h3 id="aStatMonth">—</h3></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goToBookingsWithFilter('all')" title="View all bookings"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-info"><p>Total</p><h3 id="aStatTotal">—</h3></div></div>
+        <div class="stat-card" style="border-color:#f59e0b;cursor:pointer" onclick="goToBookingsWithFilter('Pending')" title="View Pending bookings"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-hourglass-half"></i></div><div class="stat-info"><p>Pending</p><h3 id="aStatPending" style="color:#d97706">—</h3></div></div>
+        <div class="stat-card" style="border-color:#2563eb;cursor:pointer" onclick="goToBookingsWithFilter('Confirmed')" title="View Confirmed bookings"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-circle-check"></i></div><div class="stat-info"><p>Confirmed</p><h3 id="aStatConfirmed" style="color:#2563eb">—</h3></div></div>
+        <div class="stat-card" style="border-color:#16a34a;cursor:pointer" onclick="goToBookingsWithFilter('Completed')" title="View Completed bookings"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-check-double"></i></div><div class="stat-info"><p>Completed</p><h3 id="aStatCompleted" style="color:#16a34a">—</h3></div></div>
+        <div class="stat-card" style="border-color:#dc2626;cursor:pointer" onclick="goToBookingsWithFilter('Cancelled')" title="View Cancelled bookings"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-xmark"></i></div><div class="stat-info"><p>Cancelled</p><h3 id="aStatCancelled" style="color:#dc2626">—</h3></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goToBookingsWithFilter('today')" title="View today's bookings"><div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div><div class="stat-info"><p>Today</p><h3 id="aStatToday">—</h3></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goToBookingsWithFilter('month')" title="View this month's bookings"><div class="stat-icon"><i class="fa-solid fa-calendar-week"></i></div><div class="stat-info"><p>This Month</p><h3 id="aStatMonth">—</h3></div></div>
       </div>
       <div class="card">
         <div class="card-header"><h2><i class="fa-solid fa-calendar-day"></i> Today's Schedule</h2></div>
@@ -928,8 +928,8 @@ tr.row-pending:hover td { background: #fef9c3; }
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Title</th><th>Client</th><th>Email</th><th>Agenda</th><th>Guests</th><th>Remarks</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody id="bookingsTableBody"><tr><td colspan="11" style="text-align:center;padding:32px;color:#9ca3af">Loading...</td></tr></tbody>
+              <thead><tr><th>Booking</th><th>Title</th><th>Client</th><th>Email</th><th>Agenda</th><th>Guests</th><th>Remarks</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="bookingsTableBody"><tr><td colspan="9" style="text-align:center;padding:32px;color:#9ca3af">Loading...</td></tr></tbody>
             </table>
           </div>
           <div id="bookingsPagination" style="margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:flex-end;font-size:12px;color:#6b7280"></div>
@@ -1227,6 +1227,7 @@ const App = {
   adminCalData:  {},
   userCalMonth: new Date().getMonth() + 1,
   userCalYear:  new Date().getFullYear(),
+  quickFilterMonth: null,
   allBookings:     [],
   userBookings:    [],
   bookedBlocks:    [],   // for booking form
@@ -1298,6 +1299,13 @@ function statusBadge(s) {
   const map = { Pending:'badge-pending', Confirmed:'badge-confirmed', Cancelled:'badge-cancelled', Completed:'badge-completed', 'No-show':'badge-noshow' };
   const ico = { Pending:'fa-hourglass-half', Confirmed:'fa-circle-check', Cancelled:'fa-circle-xmark', Completed:'fa-check-double', 'No-show':'fa-user-slash' };
   return `<span class="badge ${map[s]||'badge-noshow'}"><i class="fa-solid ${ico[s]||'fa-circle'}"></i>${s}</span>`;
+}
+
+// Same color mapping as the Overview stat cards' border-color — used for
+// the left-edge status stripe on the merged Booking (ID+Date+Time) cell.
+function statusStripeColor(s) {
+  const map = { Pending:'#f59e0b', Confirmed:'#2563eb', Completed:'#16a34a', Cancelled:'#dc2626', 'No-show':'#6b7280' };
+  return map[s] || '#9ca3af';
 }
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -2337,9 +2345,14 @@ function filterBookings() {
   const q  = document.getElementById('fSearch').value.trim().toLowerCase();
   const dt = document.getElementById('fDate').value;
   const st = document.getElementById('fStatus').value;
+  // App.quickFilterMonth is a "YYYY-MM" set only by the "This Month" stat
+  // card (goToBookingsWithFilter) — the Date filter input is exact-date
+  // only, so this rides alongside it rather than reusing that field.
+  const mo = App.quickFilterMonth;
   filteredBookings = App.allBookings.filter(function(b) {
     const mQ = !q || [b.fullName,b.email,b.bookingId,b.title||'',b.purpose,b.remarks||''].some(function(f) { return f.toLowerCase().includes(q); });
-    return mQ && (!dt || b.bookingDate === dt) && (!st || b.status === st);
+    const mMonth = !mo || (b.bookingDate||'').slice(0,7) === mo;
+    return mQ && mMonth && (!dt || b.bookingDate === dt) && (!st || b.status === st);
   });
   currentPage = 1;
   renderBookingsTable(filteredBookings);
@@ -2348,8 +2361,33 @@ function filterBookings() {
 function clearFilters() {
   ['fSearch','fDate'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('fStatus').value = '';
+  App.quickFilterMonth = null;
   filteredBookings = App.allBookings;
   renderBookingsTable(filteredBookings);
+}
+
+// Wired to the Overview stat cards — jumps to All Bookings pre-filtered.
+// kind: 'all' | 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'today' | 'month'
+function goToBookingsWithFilter(kind) {
+  switchAdminTab('bookings');
+  function apply() {
+    document.getElementById('fSearch').value = '';
+    document.getElementById('fDate').value = '';
+    document.getElementById('fStatus').value = '';
+    App.quickFilterMonth = null;
+    if (kind === 'Pending' || kind === 'Confirmed' || kind === 'Completed' || kind === 'Cancelled') {
+      document.getElementById('fStatus').value = kind;
+    } else if (kind === 'today') {
+      document.getElementById('fDate').value = todayStr();
+    } else if (kind === 'month') {
+      App.quickFilterMonth = todayStr().slice(0,7);
+    }
+    filterBookings();
+  }
+  // Same reasoning as the existing "Review Now" button: switchAdminTab()
+  // kicks off an async loadAdminBookings() the first time, so give it a
+  // beat before filtering against App.allBookings.
+  if (App.allBookings.length === 0) setTimeout(apply, 150); else apply();
 }
 
 function renderBookingsTable(bookings) {
@@ -2359,14 +2397,16 @@ function renderBookingsTable(bookings) {
   const end   = Math.min(start + PAGE_SIZE, total);
   const page  = bookings.slice(start, end);
 
-  if (page.length === 0) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:#9ca3af">No bookings found.</td></tr>'; document.getElementById('bookingsPagination').innerHTML = ''; return; }
+  if (page.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:#9ca3af">No bookings found.</td></tr>'; document.getElementById('bookingsPagination').innerHTML = ''; return; }
 
   tbody.innerHTML = page.map(function(b) {
     const isPending = b.status === 'Pending';
     return `<tr class="${isPending?'row-pending':''}">
-      <td class="text-sm text-muted" style="white-space:nowrap">${b.bookingId}</td>
-      <td class="fw-bold" style="white-space:nowrap">${fmtDate(b.bookingDate)}</td>
-      <td class="text-sm" style="white-space:nowrap">${b.timeRange}</td>
+      <td style="white-space:nowrap;border-left:3px solid ${statusStripeColor(b.status)}">
+        <div class="text-sm text-muted" style="font-size:11px">${b.bookingId}</div>
+        <div class="fw-bold">${fmtDate(b.bookingDate)}</div>
+        <div class="text-sm">${b.timeRange}</div>
+      </td>
       <td class="fw-bold">${b.title || '—'}${b.roomType ? `<div class="text-sm text-muted" style="font-weight:400">🏛️ ${escHtml(b.roomType)}</div>` : ''}</td>
       <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button></div></div></td>
       <td class="text-sm text-muted">${b.email}</td>
