@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RTC Showroom Booking System</title>
+<title>RTC BOOKING SYSTEM</title>
+<!-- Favicon — inline SVG data URI (calendar-only mark, no external file):
+     works identically whether this HTML is served from GitHub Pages or
+     pasted into Apps Script, since there's nothing to link/host. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23800000'/%3E%3Crect x='7' y='9' width='18' height='16' rx='2' fill='%23ffffff'/%3E%3Crect x='7' y='9' width='18' height='5' rx='2' fill='%23590000'/%3E%3Crect x='11' y='6' width='2.5' height='5' rx='1.25' fill='%23ffffff'/%3E%3Crect x='18.5' y='6' width='2.5' height='5' rx='1.25' fill='%23ffffff'/%3E%3Cpath d='M11.5 18.5l2.5 2.5 6-6' stroke='%23800000' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 /* ── Reset & Variables ─────────────────────────────────────── */
@@ -313,13 +317,13 @@ tr.row-pending:hover td { background: #fef9c3; }
 @keyframes rtcsys-pulse { 0%,100% { transform: scale(1); opacity: .9; box-shadow: 0 0 0 0 rgba(185,28,28,.4); } 50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 20px 4px rgba(185,28,28,.2); } }
 @keyframes rtcsys-loading { 0% { transform: translateX(-100%); } 50% { transform: translateX(0); } 100% { transform: translateX(100%); } }
 
-/* ── Calendar-local loading (RTC mascot) ────────────────────────
+/* ── Calendar-local loading (gray flip-calendar) ─────────────────
    Small, self-contained loader that overlays just the calendar grid
    (not the whole page) while its data is being fetched/refreshed.
-   Positioned toward the left side of the calendar area per request —
-   .cal-loading-inner is left-aligned rather than centered. Scaled down
-   from a 320x480 source design via transform:scale() so all the
-   original keyframe math (bottom:240px etc.) still works unmodified. */
+   Cleaner/more formal replacement for the old mascot-jump animation —
+   a page of the calendar "flips" on loop, header tinted maroon to
+   match the RTC brand instead of the neutral gray in the original
+   reference design. */
 .cal-wrap { position: relative; }
 .cal-loading {
   position: absolute; inset: 0; z-index: 20; border-radius: 10px;
@@ -329,75 +333,29 @@ tr.row-pending:hover td { background: #fef9c3; }
 .cal-loading.show { display: flex; }
 .cal-loading-inner {
   position: relative; width: 240px; height: 360px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
 }
-.rtcload-container {
-  position: relative; width: 320px; height: 480px;
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-  transform: scale(.75); transform-origin: top left;
+.gcal-loader { text-align: center; }
+.gcal-calendar {
+  position: relative; width: 85px; height: 90px; background: #fff; border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(95,99,104,.12); overflow: hidden; margin: 0 auto 20px;
+  animation: gcal-float 3s ease-in-out infinite;
 }
-.rtcload-block {
-  width: 100px; height: 100px; background-color: #fcae1e; border-radius: 22px;
-  position: absolute; bottom: 240px;
-  box-shadow: 0 15px 35px rgba(0,0,0,.5), 0 0 25px rgba(252,174,30,.35);
-  display: flex; justify-content: center; align-items: center;
-  animation: rtcload-bump .9s infinite linear; box-sizing: border-box; z-index: 10;
+.gcal-calendar::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 26px; background: var(--maroon,#800000); }
+.gcal-rings { position: absolute; top: 6px; left: 0; width: 100%; display: flex; justify-content: space-around; padding: 0 18px; z-index: 3; }
+.gcal-ring { width: 6px; height: 14px; background: #e8eaed; border-radius: 3px; box-shadow: inset 0 1px 3px rgba(0,0,0,.1); }
+.gcal-grid { position: absolute; top: 38px; left: 12px; right: 12px; bottom: 12px; display: grid; grid-template-columns: repeat(4,14px); grid-gap: 6px; justify-content: center; }
+.gcal-item { background: #f1f3f4; border-radius: 4px; }
+.gcal-flip {
+  position: absolute; top: 26px; left: 0; width: 100%; height: 64px; background: #fff;
+  transform-origin: top center; animation: gcal-flip 1.6s cubic-bezier(.4,0,.2,1) infinite;
+  display: grid; grid-template-columns: repeat(4,14px); grid-gap: 6px; padding: 12px;
+  justify-content: center; backface-visibility: hidden; z-index: 2;
 }
-.rtcload-block::after {
-  content: ""; position: absolute; width: 8px; height: 8px; background: #ffe6b3; border-radius: 50%;
-  box-shadow: 62px 0 0 #ffe6b3, 0 62px 0 #ffe6b3, 62px 62px 0 #ffe6b3;
-  top: 12px; left: 12px; opacity: .9;
-}
-.rtcload-calicon {
-  width: 44px; height: 44px; background-color: #fff; border-radius: 8px; position: relative;
-  box-shadow: 0 4px 10px rgba(0,0,0,.15), inset 0 -3px 0 #e0e0e0; overflow: hidden;
-  display: flex; flex-direction: column;
-}
-.rtcload-calicon::before { content: ""; width: 100%; height: 14px; background-color: #ff3b3b; position: absolute; top: 0; left: 0; }
-.rtcload-calicon::after {
-  content: ""; position: absolute; width: 6px; height: 6px; background-color: #b0bec5; border-radius: 1px; top: 22px; left: 8px;
-  box-shadow: 11px 0 0 #b0bec5, 22px 0 0 #b0bec5, 0 11px 0 #b0bec5, 11px 11px 0 #b0bec5, 22px 11px 0 #b0bec5;
-}
-.rtcload-mario {
-  width: 80px; height: 125px; position: absolute; bottom: 30px;
-  animation: rtcload-jump .9s infinite cubic-bezier(.4,0,.2,1);
-  display: flex; flex-direction: column; align-items: center; z-index: 5;
-}
-.rtcload-cap { width: 64px; height: 22px; background-color: var(--maroon,#800020); border-radius: 16px 16px 4px 4px; position: relative; z-index: 4; box-shadow: 0 4px 8px rgba(0,0,0,.15); }
-.rtcload-cap::before {
-  content: "RTC"; position: absolute; width: 28px; height: 14px; background-color: #fff; color: var(--maroon,#800020);
-  font-size: 9px; font-weight: 900; text-align: center; line-height: 15px; border-radius: 10px;
-  left: 50%; transform: translateX(-50%); top: 4px; font-family: 'Arial Black', sans-serif; letter-spacing: .5px;
-}
-.rtcload-cap::after { content: ""; position: absolute; background-color: var(--maroon,#800020); width: 14px; height: 6px; right: -2px; bottom: -1px; border-radius: 0 4px 4px 0; }
-.rtcload-face {
-  width: 58px; height: 42px; background-color: #ffdcb3; border-radius: 0 0 18px 18px; margin-top: -2px;
-  position: relative; z-index: 3; box-shadow: 0 4px 10px rgba(0,0,0,.1); display: flex; justify-content: center;
-}
-.rtcload-face::before { content: ""; position: absolute; width: 10px; height: 14px; background-color: #ffdcb3; border-radius: 50%; left: -5px; top: 8px; box-shadow: 60px 0 0 #ffdcb3; }
-.rtcload-eyes { position: absolute; top: 8px; width: 36px; display: flex; justify-content: space-between; z-index: 5; }
-.rtcload-eye { width: 8px; height: 11px; background-color: #22313f; border-radius: 50%; position: relative; }
-.rtcload-eye::after { content: ""; position: absolute; width: 3px; height: 3px; background-color: #fff; border-radius: 50%; top: 2px; left: 2px; }
-.rtcload-nose { position: absolute; width: 16px; height: 12px; background-color: #ffdcb3; border-radius: 50%; top: 15px; z-index: 6; box-shadow: 0 2px 4px rgba(0,0,0,.08); left: 50%; transform: translateX(-50%); }
-.rtcload-smile { position: absolute; width: 18px; height: 9px; border-bottom: 3px solid #3d2a1d; border-radius: 0 0 12px 12px; bottom: 6px; z-index: 5; left: 50%; transform: translateX(-50%); }
-.rtcload-body { width: 60px; height: 54px; background-color: #ff3b3b; border-radius: 12px 12px 22px 22px; margin-top: 2px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.rtcload-overalls { position: absolute; bottom: 0; width: 100%; height: 38px; background-color: #0066ff; border-radius: 0 0 22px 22px; z-index: 1; display: flex; flex-direction: column; align-items: center; }
-.rtcload-straps { position: absolute; top: 0; width: 100%; height: 16px; z-index: 1; }
-.rtcload-straps::before, .rtcload-straps::after { content: ""; position: absolute; width: 12px; height: 18px; background-color: #0066ff; top: 0; }
-.rtcload-straps::before { left: 0; border-radius: 4px 4px 0 0; }
-.rtcload-straps::after { right: 0; border-radius: 4px 4px 0 0; }
-.rtcload-buttons { position: absolute; top: 2px; width: 32px; height: 6px; z-index: 3; }
-.rtcload-buttons::before, .rtcload-buttons::after { content: ""; position: absolute; width: 6px; height: 6px; background-color: #ffca28; border-radius: 50%; }
-.rtcload-buttons::before { left: 0; }
-.rtcload-buttons::after { right: 0; }
-.rtcload-bodytext { color: #fff; font-size: 8px; font-weight: 900; letter-spacing: .5px; font-family: 'Arial Black', sans-serif; z-index: 4; margin-top: 14px; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
-.rtcload-floattext {
-  color: #ffca28; font-size: 20px; font-weight: 800; letter-spacing: 5px; position: absolute; bottom: 355px;
-  text-shadow: 0 0 12px rgba(255,202,40,.4); white-space: nowrap; opacity: 0; transform: translateY(20px) scale(.8);
-  animation: rtcload-coin .9s infinite linear; z-index: 1;
-}
-@keyframes rtcload-jump { 0% { transform: translateY(0); } 30% { transform: translateY(-102px); } 36% { transform: translateY(-102px); } 65%, 100% { transform: translateY(0); } }
-@keyframes rtcload-bump { 0%, 29% { transform: translateY(0); } 30% { transform: translateY(0); } 33% { transform: translateY(-16px); } 42% { transform: translateY(2px); } 50%, 100% { transform: translateY(0); } }
-@keyframes rtcload-coin { 0%, 29% { opacity: 0; transform: translateY(20px) scale(.8); } 32% { opacity: 1; transform: translateY(-38px) scale(1.1); } 45% { transform: translateY(-32px) scale(1); opacity: 1; } 60% { opacity: 0; transform: translateY(-60px) scale(.85); } 100% { opacity: 0; transform: translateY(20px) scale(.8); } }
+.gcal-text { color: var(--maroon,#800000); font-size: 13px; font-weight: 600; letter-spacing: .3px; animation: gcal-pulse 1.6s ease-in-out infinite; }
+@keyframes gcal-flip { 0% { transform: rotateX(0deg); opacity: 1; background: #fff; filter: brightness(1); } 40% { background: #f1f3f4; filter: brightness(.95); } 65% { opacity: 1; } 75% { transform: rotateX(100deg); opacity: 0; } 100% { transform: rotateX(100deg); opacity: 0; } }
+@keyframes gcal-pulse { 0%, 100% { opacity: .5; transform: scale(.98); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes gcal-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 /* ── Room-switch transition (center screen) ─────────────────────
    Brief branded flash shown while toggling Showroom ↔ Conference —
@@ -464,6 +422,11 @@ tr.row-pending:hover td { background: #fef9c3; }
 @keyframes rtcskel-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @keyframes rtcskel-pulse { 0%,100% { transform: translate(-50%,-50%) scale(.95); opacity: .8; } 50% { transform: translate(-50%,-50%) scale(1.05); opacity: 1; } }
 @keyframes rtcskel-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Quick Range toggle chips (All Bookings filter bar) ────────── */
+.qr-chip { background: var(--white); border: 1.5px solid var(--gray-200); color: #374151; border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.qr-chip:hover { border-color: var(--maroon); }
+.qr-chip.active { background: var(--maroon); border-color: var(--maroon); color: var(--white); }
 
 /* ── Misc ───────────────────────────────────────────────────── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -601,7 +564,18 @@ tr.row-pending:hover td { background: #fef9c3; }
 <header class="header">
   <div class="header-inner">
     <div class="logo" onclick="showView('public')">
-      <div class="logo-icon">RTC</div>
+      <div class="logo-icon">
+        <svg viewBox="0 0 40 40" width="24" height="24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="4" y="10" width="18" height="22" rx="2" fill="#ffffff"/>
+          <rect x="8" y="15" width="4" height="4" fill="#800000"/>
+          <rect x="16" y="15" width="4" height="4" fill="#800000"/>
+          <rect x="8" y="23" width="4" height="4" fill="#800000"/>
+          <rect x="16" y="23" width="4" height="4" fill="#800000"/>
+          <rect x="20" y="6" width="16" height="16" rx="3" fill="#ffffff"/>
+          <rect x="20" y="6" width="16" height="5" rx="3" fill="#800000"/>
+          <path d="M24 15l2.2 2.2 5-5" stroke="#800000" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <div class="logo-text"><b id="logoRoomName">RTC Showroom</b><span>Booking System</span></div>
     </div>
     <nav class="header-nav" id="headerNav"></nav>
@@ -636,7 +610,7 @@ tr.row-pending:hover td { background: #fef9c3; }
             </select>
           </div>
           <div class="cal-wrap">
-            <div class="cal-loading" id="pubCalLoading"><div class="cal-loading-inner"><div class="rtcload-container"><div class="rtcload-floattext">PLEASE WAIT</div><div class="rtcload-block"><div class="rtcload-calicon"></div></div><div class="rtcload-mario"><div class="rtcload-cap"></div><div class="rtcload-face"><div class="rtcload-eyes"><div class="rtcload-eye"></div><div class="rtcload-eye"></div></div><div class="rtcload-nose"></div><div class="rtcload-smile"></div></div><div class="rtcload-body"><div class="rtcload-straps"></div><div class="rtcload-overalls"><div class="rtcload-buttons"></div><div class="rtcload-bodytext">RTC</div></div></div></div></div></div></div>
+            <div class="cal-loading" id="pubCalLoading"><div class="cal-loading-inner"><div class="gcal-loader"><div class="gcal-calendar"><div class="gcal-rings"><div class="gcal-ring"></div><div class="gcal-ring"></div></div><div class="gcal-grid"><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div></div><div class="gcal-flip"><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div></div></div><div class="gcal-text">Loading calendar…</div></div></div></div>
             <div class="cal-nav">
               <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
               <h3 id="calTitle">—</h3>
@@ -875,6 +849,7 @@ tr.row-pending:hover td { background: #fef9c3; }
       <button class="tab-btn active" onclick="switchAdminTab('overview')"  id="adminTab-overview"><i class="fa-solid fa-chart-pie"></i> Overview</button>
       <button class="tab-btn"        onclick="switchAdminTab('bookings')"  id="adminTab-bookings"><i class="fa-solid fa-table-list"></i> All Bookings</button>
       <button class="tab-btn"        onclick="switchAdminTab('calendar')"  id="adminTab-calendar"><i class="fa-solid fa-calendar"></i> Calendar</button>
+      <button class="tab-btn"        onclick="switchAdminTab('history')"   id="adminTab-history"><i class="fa-solid fa-box-archive"></i> History</button>
       <button class="tab-btn"        onclick="switchAdminTab('logs')"      id="adminTab-logs"><i class="fa-solid fa-scroll"></i> Logs</button>
     </div>
 
@@ -891,7 +866,7 @@ tr.row-pending:hover td { background: #fef9c3; }
         </button>
       </div>
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card" style="cursor:pointer" onclick="goToBookingsWithFilter('all')" title="View all bookings"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-info"><p>Total</p><h3 id="aStatTotal">—</h3></div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goToBookingsWithFilter('all')" title="View active bookings (Pending + Confirmed)"><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="stat-info"><p>Active</p><h3 id="aStatTotal">—</h3></div></div>
         <div class="stat-card" style="border-color:#f59e0b;cursor:pointer" onclick="goToBookingsWithFilter('Pending')" title="View Pending bookings"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-hourglass-half"></i></div><div class="stat-info"><p>Pending</p><h3 id="aStatPending" style="color:#d97706">—</h3></div></div>
         <div class="stat-card" style="border-color:#2563eb;cursor:pointer" onclick="goToBookingsWithFilter('Confirmed')" title="View Confirmed bookings"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-circle-check"></i></div><div class="stat-info"><p>Confirmed</p><h3 id="aStatConfirmed" style="color:#2563eb">—</h3></div></div>
         <div class="stat-card" style="border-color:#16a34a;cursor:pointer" onclick="goToBookingsWithFilter('Completed')" title="View Completed bookings"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-check-double"></i></div><div class="stat-info"><p>Completed</p><h3 id="aStatCompleted" style="color:#16a34a">—</h3></div></div>
@@ -921,10 +896,20 @@ tr.row-pending:hover td { background: #fef9c3; }
             <div class="filter-group"><label>Date</label><input class="form-control" type="date" id="fDate" onchange="filterBookings()"></div>
             <div class="filter-group"><label>Status</label>
               <select class="form-control" id="fStatus" onchange="filterBookings()">
-                <option value="">All</option><option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>No-show</option>
+                <option value="">All (Pending + Confirmed)</option><option>Pending</option><option>Confirmed</option>
               </select>
             </div>
+            <div class="filter-group"><label>Pick a Month</label><input class="form-control" type="month" id="qrPickedMonth" style="width:150px" onchange="onPickMonthChange()"></div>
             <button class="btn btn-ghost btn-sm" onclick="clearFilters()" style="align-self:flex-end"><i class="fa-solid fa-xmark"></i> Clear</button>
+          </div>
+          <div class="filter-group" style="margin-bottom:14px">
+            <label>Quick Range <span style="font-weight:400;color:#9ca3af">(tap to combine)</span></label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" class="qr-chip" id="qrChip-thisWeek" onclick="toggleQuickRange('thisWeek')">This Week</button>
+              <button type="button" class="qr-chip" id="qrChip-within2Weeks" onclick="toggleQuickRange('within2Weeks')">Within 2 Weeks</button>
+              <button type="button" class="qr-chip" id="qrChip-thisMonth" onclick="toggleQuickRange('thisMonth')">This Month</button>
+              <button type="button" class="qr-chip" id="qrChip-nextMonth" onclick="toggleQuickRange('nextMonth')">Next Month</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -937,6 +922,37 @@ tr.row-pending:hover td { background: #fef9c3; }
       </div>
     </div>
 
+    <!-- HISTORY (Completed / Cancelled / No-show — kept out of All Bookings to stay uncluttered) -->
+    <div class="tab-pane" id="adminPane-history">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-box-archive"></i> History</h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="filter-bar">
+            <div class="filter-group"><label>Search</label><input class="form-control" type="text" id="fhSearch" placeholder="Name, email, mobile..." oninput="filterHistoryBookings()" style="min-width:180px"></div>
+            <div class="filter-group"><label>Date</label><input class="form-control" type="date" id="fhDate" onchange="filterHistoryBookings()"></div>
+            <div class="filter-group"><label>Status</label>
+              <select class="form-control" id="fhStatus" onchange="filterHistoryBookings()">
+                <option value="">All (Completed + Cancelled + No-show)</option><option>Completed</option><option>Cancelled</option><option>No-show</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="clearHistoryFilters()" style="align-self:flex-end"><i class="fa-solid fa-xmark"></i> Clear</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Booking</th><th>Title</th><th>Client</th><th>Email</th><th>Agenda</th><th>Guests</th><th>Remarks</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="historyTableBody"><tr><td colspan="9" style="text-align:center;padding:32px;color:#9ca3af">Loading...</td></tr></tbody>
+            </table>
+          </div>
+          <div id="historyPagination" style="margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:flex-end;font-size:12px;color:#6b7280"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- CALENDAR -->
     <div class="tab-pane" id="adminPane-calendar">
       <div class="grid-2">
@@ -944,7 +960,7 @@ tr.row-pending:hover td { background: #fef9c3; }
           <div class="card-header"><h2><i class="fa-solid fa-calendar"></i> Monthly View</h2><button class="btn btn-ghost btn-sm" onclick="loadAdminCalendar()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
           <div class="card-body">
             <div class="cal-wrap">
-              <div class="cal-loading" id="adminCalLoading"><div class="cal-loading-inner"><div class="rtcload-container"><div class="rtcload-floattext">PLEASE WAIT</div><div class="rtcload-block"><div class="rtcload-calicon"></div></div><div class="rtcload-mario"><div class="rtcload-cap"></div><div class="rtcload-face"><div class="rtcload-eyes"><div class="rtcload-eye"></div><div class="rtcload-eye"></div></div><div class="rtcload-nose"></div><div class="rtcload-smile"></div></div><div class="rtcload-body"><div class="rtcload-straps"></div><div class="rtcload-overalls"><div class="rtcload-buttons"></div><div class="rtcload-bodytext">RTC</div></div></div></div></div></div></div>
+              <div class="cal-loading" id="adminCalLoading"><div class="cal-loading-inner"><div class="gcal-loader"><div class="gcal-calendar"><div class="gcal-rings"><div class="gcal-ring"></div><div class="gcal-ring"></div></div><div class="gcal-grid"><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div></div><div class="gcal-flip"><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div><div class="gcal-item"></div></div></div><div class="gcal-text">Loading calendar…</div></div></div></div>
               <div class="cal-nav">
                 <button class="cal-nav-btn" onclick="changeAdminMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                 <h3 id="adminCalTitle">—</h3>
@@ -1132,6 +1148,24 @@ tr.row-pending:hover td { background: #fef9c3; }
   </div>
 </div>
 
+<!-- ── MODAL: APPROVE/REJECT CONFIRMATION (with booking preview) ──── -->
+<div class="modal-overlay hidden" id="modalConfirmAction">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header" id="confirmActionHeader">
+      <h3><i class="fa-solid" id="confirmActionIcon"></i> <span id="confirmActionTitle">Confirm</span></h3>
+      <button class="modal-close" onclick="closeModal('modalConfirmAction')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmActionQuestion" style="font-size:13.5px;color:#374151;margin:0 0 14px"></p>
+      <div id="confirmActionPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalConfirmAction')">Cancel</button>
+      <button class="btn" id="btnConfirmAction" onclick="doConfirmAction()"></button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MODAL: VIEW USER PROFILE ────────────────────────────── -->
 <div class="modal-overlay hidden" id="modalViewUser">
   <div class="modal-box" style="max-width:480px">
@@ -1227,7 +1261,8 @@ const App = {
   adminCalData:  {},
   userCalMonth: new Date().getMonth() + 1,
   userCalYear:  new Date().getFullYear(),
-  quickFilterMonth: null,
+  quickRange: { thisWeek:false, within2Weeks:false, thisMonth:false, nextMonth:false },
+  quickRangePickedMonth: null,
   allBookings:     [],
   userBookings:    [],
   bookedBlocks:    [],   // for booking form
@@ -2257,11 +2292,15 @@ function doSaveEditDetails() {
 
 // ── ADMIN ─────────────────────────────────────────────────────
 function switchAdminTab(tab) {
-  ['overview','bookings','calendar','logs'].forEach(function(t) {
+  ['overview','bookings','calendar','history','logs'].forEach(function(t) {
     document.getElementById('adminTab-'  + t).classList.toggle('active', t === tab);
     document.getElementById('adminPane-' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'bookings' && App.allBookings.length === 0) loadAdminBookings();
+  // History reuses the exact same App.allBookings fetch as All Bookings
+  // (both are just different status-scoped views over one dataset) — only
+  // trigger a fresh fetch if nothing's loaded yet; otherwise just re-render.
+  if (tab === 'history') { if (App.allBookings.length === 0) loadAdminBookings(); else renderHistoryTable(filteredHistoryBookings); }
   if (tab === 'calendar') loadAdminCalendar();
   if (tab === 'logs') loadActivityLogs();
 }
@@ -2275,7 +2314,10 @@ function loadAdminStats() {
 
   api(action, {}, function(r) {
     if (!r || !r.success) return;
-    document.getElementById('aStatTotal').textContent     = r.total     || 0;
+    // "Active" = Pending + Confirmed — matches what the All Bookings tab
+    // actually shows now (Completed/Cancelled/No-show live in History), so
+    // clicking this card and the number on it always agree.
+    document.getElementById('aStatTotal').textContent     = (r.pending || 0) + (r.confirmed || 0);
     document.getElementById('aStatPending').textContent   = r.pending   || 0;
     document.getElementById('aStatConfirmed').textContent = r.confirmed || 0;
     document.getElementById('aStatCompleted').textContent = r.completed || 0;
@@ -2328,31 +2370,78 @@ function loadAdminToday() {
   });
 }
 
-// Bookings Table
+// Bookings Table — App.allBookings holds EVERY status; All Bookings and
+// History are just two different status-scoped views over that one array.
 var PAGE_SIZE = 15, currentPage = 1, filteredBookings = [];
+var currentHistoryPage = 1, filteredHistoryBookings = [];
 
 function loadAdminBookings() {
   api(r_action('getAdminAllBookings'), {}, function(r) {
     App.allBookings = (r && r.success) ? r.bookings : [];
-    filteredBookings = App.allBookings;
     currentPage = 1;
-    renderBookingsTable(filteredBookings);
+    // Route through filterBookings()/filterHistoryBookings() (not a raw
+    // assign) so the very first render already respects the Pending+
+    // Confirmed / History scope — otherwise the initial paint briefly
+    // shows every status until the user touches a filter.
+    filterBookings();
+    currentHistoryPage = 1;
+    filterHistoryBookings();
     renderNav(); // update pending count badge
   });
+}
+
+function isHistoryStatus_(b) { return b.status === 'Completed' || b.status === 'Cancelled' || b.status === 'No-show'; }
+
+// ── Quick Range (This Week / Within 2 Weeks / This Month / Next Month /
+// Pick a Month) — multiple can be active at once; active ones are OR'd
+// together into one combined date range, which then ANDs with the rest of
+// the filters (search/exact date/status) same as before. Uses the
+// browser's own clock (simplest option — device clocks auto-sync via the
+// internet by default, so this is accurate enough without an extra
+// server round trip).
+function toggleQuickRange(key) {
+  App.quickRange[key] = !App.quickRange[key];
+  document.getElementById('qrChip-' + key).classList.toggle('active', App.quickRange[key]);
+  filterBookings();
+}
+
+function onPickMonthChange() {
+  const v = document.getElementById('qrPickedMonth').value; // '' or 'YYYY-MM'
+  App.quickRangePickedMonth = v || null;
+  filterBookings();
+}
+
+function quickRangeActive_() {
+  return App.quickRange.thisWeek || App.quickRange.within2Weeks || App.quickRange.thisMonth || App.quickRange.nextMonth || !!App.quickRangePickedMonth;
+}
+
+function inQuickRange_(dateStr) {
+  if (!quickRangeActive_()) return true;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  const diffDays = Math.round((d - today) / 86400000);
+  if (App.quickRange.thisWeek && diffDays >= 0 && diffDays <= 6) return true;
+  if (App.quickRange.within2Weeks && diffDays >= 0 && diffDays <= 13) return true;
+  if (App.quickRange.thisMonth && dateStr.slice(0,7) === todayStr().slice(0,7)) return true;
+  if (App.quickRange.nextMonth) {
+    const n = new Date(); n.setDate(1); n.setMonth(n.getMonth() + 1);
+    const ym = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0');
+    if (dateStr.slice(0,7) === ym) return true;
+  }
+  if (App.quickRangePickedMonth && dateStr.slice(0,7) === App.quickRangePickedMonth) return true;
+  return false;
 }
 
 function filterBookings() {
   const q  = document.getElementById('fSearch').value.trim().toLowerCase();
   const dt = document.getElementById('fDate').value;
   const st = document.getElementById('fStatus').value;
-  // App.quickFilterMonth is a "YYYY-MM" set only by the "This Month" stat
-  // card (goToBookingsWithFilter) — the Date filter input is exact-date
-  // only, so this rides alongside it rather than reusing that field.
-  const mo = App.quickFilterMonth;
   filteredBookings = App.allBookings.filter(function(b) {
+    // All Bookings only ever shows Pending/Confirmed — Completed/Cancelled/
+    // No-show live in the History tab now, to keep this view uncluttered.
+    if (b.status !== 'Pending' && b.status !== 'Confirmed') return false;
     const mQ = !q || [b.fullName,b.email,b.bookingId,b.title||'',b.purpose,b.remarks||''].some(function(f) { return f.toLowerCase().includes(q); });
-    const mMonth = !mo || (b.bookingDate||'').slice(0,7) === mo;
-    return mQ && mMonth && (!dt || b.bookingDate === dt) && (!st || b.status === st);
+    return mQ && inQuickRange_(b.bookingDate) && (!dt || b.bookingDate === dt) && (!st || b.status === st);
   });
   currentPage = 1;
   renderBookingsTable(filteredBookings);
@@ -2361,26 +2450,64 @@ function filterBookings() {
 function clearFilters() {
   ['fSearch','fDate'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('fStatus').value = '';
-  App.quickFilterMonth = null;
-  filteredBookings = App.allBookings;
+  document.getElementById('qrPickedMonth').value = '';
+  App.quickRange = { thisWeek:false, within2Weeks:false, thisMonth:false, nextMonth:false };
+  App.quickRangePickedMonth = null;
+  ['thisWeek','within2Weeks','thisMonth','nextMonth'].forEach(function(k) { document.getElementById('qrChip-' + k).classList.remove('active'); });
+  filteredBookings = App.allBookings.filter(function(b) { return b.status === 'Pending' || b.status === 'Confirmed'; });
   renderBookingsTable(filteredBookings);
 }
 
-// Wired to the Overview stat cards — jumps to All Bookings pre-filtered.
+// ── History tab (Completed / Cancelled / No-show) ──────────────
+function filterHistoryBookings() {
+  const q  = document.getElementById('fhSearch').value.trim().toLowerCase();
+  const dt = document.getElementById('fhDate').value;
+  const st = document.getElementById('fhStatus').value;
+  filteredHistoryBookings = App.allBookings.filter(function(b) {
+    if (!isHistoryStatus_(b)) return false;
+    const mQ = !q || [b.fullName,b.email,b.bookingId,b.title||'',b.purpose,b.remarks||''].some(function(f) { return f.toLowerCase().includes(q); });
+    return mQ && (!dt || b.bookingDate === dt) && (!st || b.status === st);
+  });
+  currentHistoryPage = 1;
+  renderHistoryTable(filteredHistoryBookings);
+}
+
+function clearHistoryFilters() {
+  ['fhSearch','fhDate'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('fhStatus').value = '';
+  filteredHistoryBookings = App.allBookings.filter(isHistoryStatus_);
+  currentHistoryPage = 1;
+  renderHistoryTable(filteredHistoryBookings);
+}
+
+// Wired to the Overview stat cards — jumps to All Bookings or History
+// pre-filtered, whichever tab actually shows that status now.
 // kind: 'all' | 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'today' | 'month'
 function goToBookingsWithFilter(kind) {
-  switchAdminTab('bookings');
+  const goesToHistory = (kind === 'Completed' || kind === 'Cancelled');
+  switchAdminTab(goesToHistory ? 'history' : 'bookings');
   function apply() {
+    if (goesToHistory) {
+      document.getElementById('fhSearch').value = '';
+      document.getElementById('fhDate').value = '';
+      document.getElementById('fhStatus').value = kind;
+      filterHistoryBookings();
+      return;
+    }
     document.getElementById('fSearch').value = '';
     document.getElementById('fDate').value = '';
     document.getElementById('fStatus').value = '';
-    App.quickFilterMonth = null;
-    if (kind === 'Pending' || kind === 'Confirmed' || kind === 'Completed' || kind === 'Cancelled') {
+    document.getElementById('qrPickedMonth').value = '';
+    App.quickRange = { thisWeek:false, within2Weeks:false, thisMonth:false, nextMonth:false };
+    App.quickRangePickedMonth = null;
+    ['thisWeek','within2Weeks','thisMonth','nextMonth'].forEach(function(k) { document.getElementById('qrChip-' + k).classList.remove('active'); });
+    if (kind === 'Pending' || kind === 'Confirmed') {
       document.getElementById('fStatus').value = kind;
     } else if (kind === 'today') {
       document.getElementById('fDate').value = todayStr();
     } else if (kind === 'month') {
-      App.quickFilterMonth = todayStr().slice(0,7);
+      App.quickRange.thisMonth = true;
+      document.getElementById('qrChip-thisMonth').classList.add('active');
     }
     filterBookings();
   }
@@ -2435,6 +2562,51 @@ function renderBookingsTable(bookings) {
 
 function goPage(p) { currentPage = p; renderBookingsTable(filteredBookings); }
 
+// ── History table (Completed / Cancelled / No-show) — same row
+// template as All Bookings, minus Approve/Reject/Edit Details (those
+// don't apply to closed bookings); just an Update Status action, in
+// case a Cancelled booking needs correcting back to Pending etc.
+function renderHistoryTable(bookings) {
+  const tbody = document.getElementById('historyTableBody');
+  const total = bookings.length;
+  const start = (currentHistoryPage-1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+  const page  = bookings.slice(start, end);
+
+  if (page.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:#9ca3af">No history found.</td></tr>'; document.getElementById('historyPagination').innerHTML = ''; return; }
+
+  tbody.innerHTML = page.map(function(b) {
+    return `<tr>
+      <td style="white-space:nowrap;border-left:3px solid ${statusStripeColor(b.status)}">
+        <div class="text-sm text-muted" style="font-size:11px">${b.bookingId}</div>
+        <div class="fw-bold">${fmtDate(b.bookingDate)}</div>
+        <div class="text-sm">${b.timeRange}</div>
+      </td>
+      <td class="fw-bold">${b.title || '—'}${b.roomType ? `<div class="text-sm text-muted" style="font-weight:400">🏛️ ${escHtml(b.roomType)}</div>` : ''}</td>
+      <td class="fw-bold"><div style="display:flex;align-items:center;gap:8px">${avatarHtml(b.fullName,'avatar-xs',b.avatar)}<div><button class="btn-link-plain" onclick="viewUserProfile('${b.email}')">${b.fullName}</button></div></div></td>
+      <td class="text-sm text-muted">${b.email}</td>
+      <td class="text-sm" style="max-width:160px"><div class="cell-clamp" onclick="viewFullAgenda('${b.bookingId}')">${escHtml(b.purpose)}</div>${b.purpose && b.purpose.length > 90 ? '<span class="cell-clamp-hint">View more…</span>' : ''}</td>
+      <td class="text-sm" style="max-width:130px">${b.guests ? escHtml(b.guests).replace(/\n/g,'<br>') : '—'}</td>
+      <td class="text-sm text-muted" style="max-width:160px;white-space:pre-wrap;word-break:break-word">${b.remarks ? escHtml(b.remarks) : '—'}</td>
+      <td>${statusBadge(b.status)}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${b.bookingId}','${b.status}','${b.fullName}','${fmtDate(b.bookingDate)}','${b.timeRange}')" title="Update Status"><i class="fa-solid fa-pen-to-square"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  let pag = `<span>Showing ${start+1}–${end} of ${total}</span>`;
+  if (totalPages > 1) {
+    pag += ` <button class="btn btn-ghost btn-sm" onclick="goPageHistory(${currentHistoryPage-1})" ${currentHistoryPage===1?'disabled':''}>‹</button>`;
+    pag += ` <span>${currentHistoryPage}/${totalPages}</span>`;
+    pag += ` <button class="btn btn-ghost btn-sm" onclick="goPageHistory(${currentHistoryPage+1})" ${currentHistoryPage===totalPages?'disabled':''}>›</button>`;
+  }
+  document.getElementById('historyPagination').innerHTML = pag;
+}
+
+function goPageHistory(p) { currentHistoryPage = p; renderHistoryTable(filteredHistoryBookings); }
+
 // ── ADMIN: VIEW FULL AGENDA (from table row click) ─────────────
 function viewFullAgenda(bookingId) {
   const source = (typeof filteredBookings !== 'undefined' && filteredBookings) || (App.allBookings || []);
@@ -2481,21 +2653,92 @@ function viewUserProfile(email) {
   });
 }
 
-function quickApprove(bookingId) {
-  if (!confirm('Approve booking ' + bookingId + '? This will send a confirmation email to the client.')) return;
-  api(r_action('updateBookingStatus'), { bookingId: bookingId, status: 'Confirmed', adminUsername: App.admin.username }, function(r) {
-    if (r && r.success) { toast('Booking approved! Confirmation email sent.', 'success'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
-    else toast((r && r.message) || 'Failed.', 'error');
-  });
+// Looks a booking up wherever it might currently be held in memory —
+// App.allBookings covers the admin table (only ever one room category at
+// a time, matching whichever room tab is active), ChatBot.bookingCache
+// covers anything the chatbot has rendered (which can mix Showroom and
+// Conference bookings in one list, e.g. the Pending Bookings shortcut).
+function findBookingById_(id) {
+  var b = (App.allBookings || []).find(function(x) { return x.bookingId === id; });
+  if (!b && ChatBot.bookingCache) b = ChatBot.bookingCache[id];
+  return b;
 }
 
-function quickReject(bookingId) {
-  if (!confirm('Reject and cancel booking ' + bookingId + '?')) return;
-  api(r_action('updateBookingStatus'), { bookingId: bookingId, status: 'Cancelled', adminUsername: App.admin.username }, function(r) {
-    if (r && r.success) { toast('Booking rejected.', 'info'); loadAdminBookings(); loadAdminStats(); loadAdminToday(); }
-    else toast((r && r.message) || 'Failed.', 'error');
-  });
+// Same preview card style used for both the admin table's Approve/Reject
+// and the chatbot's inline Approve/Reject — one shared modal, one shared
+// source of truth for "what does this booking actually look like".
+function confirmActionPreviewHtml_(b) {
+  return '<div style="background:#f9fafb;border-radius:10px;padding:14px;font-size:13px;line-height:1.6">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' + avatarHtml(b.fullName, '', b.avatar)
+    + '<div><div style="font-weight:700;color:#1f2937">' + escHtml(b.fullName || '—') + '</div><div style="color:#6b7280;font-size:12px">' + escHtml(b.email || '') + '</div></div></div>'
+    + '<div><strong>📅 ' + escHtml(fmtDate(b.bookingDate)) + '</strong> · 🕒 ' + escHtml(b.timeRange || '') + ' · ' + (b.roomType ? '🏛️ ' + escHtml(b.roomType) : '🏢 Showroom') + '</div>'
+    + (b.title ? '<div style="margin-top:6px;font-weight:700">' + escHtml(b.title) + '</div>' : '')
+    + (b.purpose ? '<div style="margin-top:4px">📝 ' + escHtml(b.purpose) + '</div>' : '')
+    + (b.clientName ? '<div style="margin-top:4px">🤝 Client: ' + escHtml(b.clientName) + '</div>' : '')
+    + (b.guests ? '<div style="margin-top:4px">👥 Guests: ' + escHtml(b.guests).replace(/\n/g,'<br>') + '</div>' : '')
+    + '<div style="margin-top:4px">🍽️ Meal Request: ' + (b.mealRequest ? escHtml(b.mealRequest) : 'No') + '</div>'
+    + (b.remarks ? '<div style="margin-top:4px">🗒️ Remarks: ' + escHtml(b.remarks) + '</div>' : '')
+    + '<div style="margin-top:8px;color:#9ca3af;font-size:11px">ID: ' + escHtml(b.bookingId) + '</div>'
+    + '</div>';
 }
+
+// action: 'approve' | 'reject'. fromChat: true when opened from a chat
+// card, so doConfirmAction() knows to also drop a confirmation message
+// back into the chat thread once it's done.
+function openConfirmAction(bookingId, action, fromChat) {
+  var b = findBookingById_(bookingId);
+  if (!b) { toast('Booking details not found — refresh and try again.', 'error'); return; }
+  ChatBot._confirmTarget = { bookingId: bookingId, roomType: b.roomType, action: action, fromChat: !!fromChat };
+  var isApprove = action === 'approve';
+  document.getElementById('confirmActionIcon').className = 'fa-solid ' + (isApprove ? 'fa-circle-check' : 'fa-circle-xmark');
+  document.getElementById('confirmActionHeader').style.background = isApprove ? '#16a34a' : '#dc2626';
+  document.getElementById('confirmActionTitle').textContent = isApprove ? 'Approve Booking' : 'Reject Booking';
+  document.getElementById('confirmActionQuestion').textContent = isApprove
+    ? 'Approve this booking? The client will get a confirmation email with their calendar invite.'
+    : 'Reject and cancel this booking? The client will be notified by email.';
+  document.getElementById('confirmActionPreview').innerHTML = confirmActionPreviewHtml_(b);
+  var btn = document.getElementById('btnConfirmAction');
+  btn.className = 'btn ' + (isApprove ? 'btn-success' : 'btn-danger');
+  btn.innerHTML = '<i class="fa-solid ' + (isApprove ? 'fa-check' : 'fa-xmark') + '"></i> ' + (isApprove ? 'Approve' : 'Reject');
+  openModal('modalConfirmAction');
+}
+
+function doConfirmAction() {
+  var t = ChatBot._confirmTarget;
+  if (!t) return;
+  var status    = t.action === 'approve' ? 'Confirmed' : 'Cancelled';
+  var apiAction = (t.roomType === 'Masflex Room' || t.roomType === 'Cascade Room') ? 'updateConferenceBookingStatus' : 'updateBookingStatus';
+  setBtnLoading('btnConfirmAction', true);
+  api(apiAction, { bookingId: t.bookingId, status: status, adminUsername: App.admin.username }, function(r) {
+    setBtnLoading('btnConfirmAction', false);
+    closeModal('modalConfirmAction');
+    if (r && r.success) {
+      toast(t.action === 'approve' ? 'Booking approved! Confirmation email sent.' : 'Booking rejected.', t.action === 'approve' ? 'success' : 'info');
+      if (typeof loadAdminBookings === 'function') loadAdminBookings();
+      if (typeof loadAdminStats    === 'function') loadAdminStats();
+      if (typeof loadAdminToday    === 'function') loadAdminToday();
+      if (t.fromChat) {
+        addChatMsg((t.action === 'approve' ? '✅ Approved' : '❌ Rejected') + ' — ' + t.bookingId + '.', 'bot');
+        // Update every already-rendered chat card for this booking in
+        // place (there could be more than one, e.g. shown in both a
+        // search result and the Pending Bookings list) — flip the status
+        // label and drop the Approve/Reject buttons, since it's no longer
+        // actionable once approved/rejected.
+        document.querySelectorAll('[data-bkid="' + t.bookingId + '"]').forEach(function(card) {
+          var st = card.querySelector('[data-role="status"]');
+          if (st) { st.textContent = status; st.style.color = status === 'Confirmed' ? '#16a34a' : '#6b7280'; }
+          var act = card.querySelector('[data-role="actions"]');
+          if (act) act.remove();
+        });
+      }
+    } else {
+      toast((r && r.message) || 'Failed.', 'error');
+    }
+  }, function() { setBtnLoading('btnConfirmAction', false); toast('Network error.', 'error'); }, true);
+}
+
+function quickApprove(bookingId) { openConfirmAction(bookingId, 'approve', false); }
+function quickReject(bookingId)  { openConfirmAction(bookingId, 'reject', false); }
 
 function openStatusModal(bookingId, status, name, date, timeRange) {
   document.getElementById('statusBookingId').value = bookingId;
@@ -3114,7 +3357,7 @@ function doAdminCreateBooking() {
 // Everything else falls back to a guided reply with quick-reply chips —
 // it never guesses at an answer it isn't sure about.
 // ══════════════════════════════════════════════════════════════
-var ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0, adminChkRoom: null, pendingAdminSearch: false };
+var ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0, adminChkRoom: null, pendingAdminSearch: false, bookingCache: {}, _confirmTarget: null };
 var CHAT_ROOM_LABEL = { showroom: 'Showroom', masflex: 'Masflex Room', cascade: 'Cascade Room' };
 
 function toggleChatbot(force) {
@@ -3129,7 +3372,7 @@ function toggleChatbot(force) {
     // with a new greeting instead of resuming a stale, possibly-stuck flow.
     const box = document.getElementById('chatbotMessages');
     if (box) box.innerHTML = '';
-    ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0, adminChkRoom: null, pendingAdminSearch: false };
+    ChatBot = { opened: false, pendingRoom: null, pendingDate: null, salaryHitCount: 0, doItYourselfCount: 0, lastMsgNorm: '', repeatStreak: 0, adminChkRoom: null, pendingAdminSearch: false, bookingCache: {}, _confirmTarget: null };
   }
   if (open) setTimeout(function() { const inp = document.getElementById('chatbotInput'); if (inp) inp.focus(); }, 50);
 }
@@ -3156,6 +3399,7 @@ function chatRoomChipsHtml() {
     + '<button class="chat-chip" onclick="chatPickRoom(\'cascade\')">🏛️ Cascade Room</button>'
     + (App.user  ? '<button class="chat-chip" onclick="chatShowMyBookings()">📋 My Bookings</button>' : '')
     + (App.admin ? '<button class="chat-chip" onclick="chatAdminStartCheckBookings()">🔍 Check Bookings</button>' : '')
+    + (App.admin ? '<button class="chat-chip" onclick="chatAdminShowPendingBookings()">⏳ Pending Bookings</button>' : '')
     + '</div>';
 }
 
@@ -3468,10 +3712,16 @@ function chatAdminStatusRank_(status) {
 }
 
 // One booking's full detail card in an admin lookup/search result list.
+// Pending entries get inline Approve/Reject buttons — same modern confirm
+// modal (with preview) as the All Bookings table, not a raw action.
 function chatAdminBookingLineHtml(b) {
   const statusColor = b.status === 'Confirmed' ? '#16a34a' : (b.status === 'Pending' ? '#d97706' : '#6b7280');
-  return '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
-    + '<div><strong>' + escHtml(b.fullName || '—') + '</strong>' + (b.roomType ? ' · ' + escHtml(b.roomType) : '') + ' <span style="float:right;font-weight:700;color:' + statusColor + '">' + escHtml(b.status || '') + '</span></div>'
+  // data-bkid/data-role hooks let doConfirmAction() update this exact card
+  // in place after Approve/Reject — flips the status label and removes the
+  // button row, instead of leaving stale clickable buttons on a booking
+  // that's already been actioned.
+  return '<div data-bkid="' + b.bookingId + '" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
+    + '<div><strong>' + escHtml(b.fullName || '—') + '</strong>' + (b.roomType ? ' · ' + escHtml(b.roomType) : '') + ' <span data-role="status" style="float:right;font-weight:700;color:' + statusColor + '">' + escHtml(b.status || '') + '</span></div>'
     + '<div>📅 ' + escHtml(fmtDate(b.bookingDate)) + ' · 🕒 ' + escHtml(b.timeRange || '') + '</div>'
     + '<div style="color:#6b7280">ID: ' + escHtml(b.bookingId || '—') + (b.email ? ' · ' + escHtml(b.email) : '') + '</div>'
     + (b.title       ? '<div><strong>' + escHtml(b.title) + '</strong></div>' : '')
@@ -3481,7 +3731,33 @@ function chatAdminBookingLineHtml(b) {
     + (b.mealRequest ? '<div>🍽️ Meal: ' + escHtml(b.mealRequest) + '</div>' : '')
     + (b.remarks     ? '<div>🗒️ Remarks: ' + escHtml(b.remarks) + '</div>' : '')
     + (b.ccEmails    ? '<div>✉️ CC: ' + escHtml(b.ccEmails) + '</div>' : '')
+    + (b.status === 'Pending' ? '<div data-role="actions" style="margin-top:8px;display:flex;gap:6px">'
+        + '<button class="btn btn-success btn-sm" onclick="openConfirmAction(\'' + b.bookingId + '\',\'approve\',true)"><i class="fa-solid fa-check"></i> Approve</button>'
+        + '<button class="btn btn-danger btn-sm" onclick="openConfirmAction(\'' + b.bookingId + '\',\'reject\',true)"><i class="fa-solid fa-xmark"></i> Reject</button>'
+        + '</div>' : '')
     + '</div>';
+}
+
+// Admin-only shortcut — every Pending booking across BOTH Showroom and
+// Conference, newest-need-first (soonest date), so admins can clear the
+// approval queue straight from the chat without opening the dashboard.
+function chatAdminShowPendingBookings() {
+  if (!App.admin) return;
+  addChatMsg('⏳ Pending Bookings', 'user');
+  chatTypingStart();
+  chatAdminFetchRaw_('both', function(all) {
+    chatTypingStop();
+    const list = all.filter(function(b) { return b.status === 'Pending'; });
+    list.sort(function(a, b) { return new Date(a.bookingDate) - new Date(b.bookingDate); });
+    list.forEach(function(b) { ChatBot.bookingCache[b.bookingId] = b; });
+    if (list.length === 0) {
+      addChatMsg('🎉 No pending bookings right now — all caught up!' + chatRoomChipsHtml(), 'bot');
+      return;
+    }
+    const rows = list.map(chatAdminBookingLineHtml).join('');
+    addChatMsg('⏳ <strong>' + list.length + ' pending booking(s)</strong> — tap Approve or Reject below:' + rows
+      + '<div class="chat-quick-replies"><button class="chat-chip" onclick="chatAdminShowPendingBookings()">Refresh</button></div>', 'bot');
+  });
 }
 
 function chatAdminFetchBookings(room, dateIso) {
@@ -3502,6 +3778,7 @@ function chatAdminFetchBookings(room, dateIso) {
       const r = chatAdminStatusRank_(a.status) - chatAdminStatusRank_(b.status);
       return r !== 0 ? r : timeStrToMinJs(a.startTime) - timeStrToMinJs(b.startTime);
     });
+    list.forEach(function(b) { ChatBot.bookingCache[b.bookingId] = b; });
     const rows = list.map(chatAdminBookingLineHtml).join('');
     addChatMsg('📋 <strong>' + list.length + ' booking(s)</strong> for <strong>' + label + '</strong> on ' + when + ' — Pending first, then Confirmed:' + rows
       + '<div class="chat-quick-replies"><button class="chat-chip" onclick="chatAdminStartCheckBookings()">Check another</button></div>', 'bot');
@@ -3533,6 +3810,7 @@ function chatAdminSearchBookings(query, room) {
       addChatMsg('📋 No bookings matching "' + escHtml(q) + '" in ' + label + '.' + chatAdminRoomChipsHtml(), 'bot');
       return;
     }
+    shown.forEach(function(b) { ChatBot.bookingCache[b.bookingId] = b; });
     const rows = shown.map(chatAdminBookingLineHtml).join('');
     const more = list.length > shown.length ? '<div style="font-size:11.5px;color:#6b7280;margin-top:4px">+' + (list.length - shown.length) + ' more not shown.</div>' : '';
     addChatMsg('📋 <strong>' + list.length + ' match(es)</strong> for "' + escHtml(q) + '" in ' + label + ':' + rows + more
@@ -3717,6 +3995,11 @@ function sendChatbotMessage() {
       + '<div class="chat-quick-replies"><button class="chat-chip" onclick="goToPortal()">Go to Portal</button></div>', 'bot');
     return;
   }
+
+  // Admin-only: free-text "pending" (e.g. "pending booking", "any pending?")
+  // jumps straight to the Pending Bookings shortcut instead of falling
+  // through to the generic room-availability flow below.
+  if (App.admin && /\bpending\b/.test(lower)) { chatAdminShowPendingBookings(); return; }
 
   const room = chatParseRoom(lower);
   const date = chatParseDate(lower);
