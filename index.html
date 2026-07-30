@@ -1198,10 +1198,11 @@ tr.row-pending:hover td { background: #fef9c3; }
 // ─────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbz3PPS5VpeiZiytGQkIe9TsnoJLEA1I9A209XvZ_bVy2DMys6D9-Hqm8p9lDTBNe1lc/exec';
 
-// "Back to Portal" target — the Employee Portal's public URL (GitHub Pages frontend).
+// "Back to Portal" target — the Employee Portal's public URL
+// (rameshtrading.com.ph/employee, employee.html).
 // Same-tab navigation (not a new tab) — the Portal's own localStorage session
 // check on load logs the user straight back in there too, no password re-entry.
-const PORTAL_URL = 'https://rtcsystem.github.io/employee/';
+const PORTAL_URL = 'https://rameshtrading.com.ph/employee';
 function goToPortal() { window.location.href = PORTAL_URL; }
 
 // ── Time Helpers (mirrors Code.gs logic, runs on frontend) ───
@@ -1801,8 +1802,9 @@ function doRegister() {
 
 function doLogout() {
   App.user = null; App.admin = null; App.allBookings = [];
-  // Portal (rtcsystem.github.io/employee/) and Booking System (rtcsystem.github.io/book/)
-  // share the same origin, so clearing the Portal's own session key here logs
+  // Portal (rameshtrading.com.ph/employee) and Booking System
+  // (rameshtrading.com.ph/book) share the same origin (same domain, just
+  // different paths), so clearing the Portal's own session key here logs
   // the user out of the Portal too — not just this app.
   try { localStorage.removeItem('rtcPortalSession'); } catch(e) {}
   goToPortal();
