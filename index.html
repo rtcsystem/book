@@ -743,6 +743,12 @@ body.rtc-cursor-active .rtc-cursor-dot{ width:8px; height:8px; }
     <div class="room-chooser-title"><i class="fa-solid fa-calendar-check"></i> RTC BOOKING SYSTEM</div>
   </div>
   <div class="page" style="max-width:1250px;margin:0 auto">
+    <!-- Only shown when this session arrived via SSO from the Employee
+         Portal (see App.viaSSO, set in tryAutoSSOLogin()) — a plain nav
+         link back via goToPortal(), no booking function attached. -->
+    <div id="myPortalBtnWrap" class="hidden" style="text-align:left;margin-bottom:16px">
+      <button class="btn" style="background:var(--maroon);color:#fff;border-radius:50px;padding:10px 22px;font-weight:700" onclick="goToPortal()"><i class="fa-solid fa-arrow-left"></i> MY PORTAL</button>
+    </div>
     <div style="text-align:center;margin-bottom:28px;margin-top:8px">
       <div style="font-size:28px;font-weight:800;color:#1a2332;letter-spacing:.5px">CHOOSE A ROOM</div>
       <div style="font-size:14px;color:var(--gray-600);margin-top:6px">Select the room you want to view availability or book.</div>
@@ -1456,6 +1462,11 @@ function buildEndMins(startMin, bookedBlocks, closeMin, slotMin) {
 const App = {
   user:  null,
   admin: null,
+  // True only when this session arrived via SSO from the Employee
+  // Portal's "Book a Room" button (set in tryAutoSSOLogin()) — controls
+  // whether the MY PORTAL button shows on the Room Chooser landing page.
+  // Someone who logs in directly here (own password) never gets it.
+  viaSSO: false,
   currentRoom: 'showroom',   // 'showroom' | 'conference'
   currentView: 'public',
   calMonth: new Date().getMonth() + 1,
@@ -1524,6 +1535,12 @@ function tryAutoSSOLogin() {
 
   api('ssoLogin', { token: token }, function(r) {
     if (r && r.success) {
+      // This session genuinely arrived via the Employee Portal's "Book
+      // a Room" button — show the MY PORTAL button on the Room Chooser
+      // landing page (hidden for anyone who logs in directly here).
+      App.viaSSO = true;
+      const portalBtnWrap = document.getElementById('myPortalBtnWrap');
+      if (portalBtnWrap) portalBtnWrap.classList.remove('hidden');
       if (r.isAdmin) {
         App.admin = r.admin;
         renderNav();
@@ -2122,7 +2139,7 @@ function doRegister() {
 }
 
 function doLogout() {
-  App.user = null; App.admin = null; App.allBookings = [];
+  App.user = null; App.admin = null; App.allBookings = []; App.viaSSO = false;
   // Portal (rameshtrading.com.ph/employee) and Booking System
   // (rameshtrading.com.ph/book) share the same origin (same domain, just
   // different paths), so clearing the Portal's own session key here logs
@@ -3515,7 +3532,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ── Periodic / Exit-Intent Nudge Mascot ────────────────────────
-(function() {
+// This script block runs while the browser is still parsing the page,
+// well before <div id="nudgePopup"> (defined much further down in the
+// HTML) actually exists yet — getElementById used to return null here
+// every time, so the whole IIFE silently no-opped and the mascot never
+// showed, with no error anywhere. Wrapping in DOMContentLoaded defers
+// this until the full DOM (including that div) is actually parsed.
+document.addEventListener('DOMContentLoaded', function() {
   const popup = document.getElementById('nudgePopup');
   if (!popup) return;
   let exitTimer;
@@ -3528,6 +3551,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function showNudge() {
     if (visible) return;
     if (typeof App !== 'undefined' && App.admin) return; // skip nudge for admins
+    // Skip on the "Choose a Room" landing page (roomChooser) — this is
+    // the very first screen someone sees right after SSO'ing in from
+    // the Employee Portal, and popping the mascot up there felt like
+    // an ambush before they'd even picked a room. It should only ever
+    // show once they're actually inside the Booking System proper
+    // (a room's dashboard, the booking form, My Bookings, etc.).
+    if (typeof App !== 'undefined' && App.currentView === 'roomChooser') return;
     popup.classList.remove('nudge-hide');
     popup.classList.add('nudge-show');
     visible = true;
@@ -3565,7 +3595,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Show on a fixed cadence regardless of activity/scrolling/navigating
   setTimeout(showNudge, FIRST_SHOW);
   setInterval(showNudge, SHOW_INTERVAL);
-})();
+});
 
 // ── FORGOT PASSWORD — OTP FLOW ────────────────────────────────
 function doSendOtp() {
@@ -4756,7 +4786,7 @@ function sendChatbotMessage() {
 
 <div id="nudgePopup" class="nudge-popup">
   <button class="nudge-close" onclick="dismissNudge(event)" aria-label="Close" title="Close">&#10005;</button>
-  <div class="nudge-bubble">Huy! Ilang saglit ka nang naka-tigil. Baka maunahan ka pa sa slot &mdash; book na! &#128197;</div>
+  <div class="nudge-bubble">Huy RTC friend! ilang seconds na ang lumipas. Baka maunahan ka pa sa slot, hey please book na! &#128197;</div>
   <div class="nudge-robot">
     <div class="nudge-robot-antenna"></div>
     <div class="nudge-robot-face">
