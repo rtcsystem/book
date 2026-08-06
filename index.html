@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RTC BOOKING SYSTEM</title>
+<!-- Runs synchronously, before <body> paints anything, so a person
+     arriving via SSO (?ssoToken=... from the Employee Portal's "Book a
+     Room" button) never sees a flash of the login form, nav bar, or
+     any other raw page state — see #ssoArrivalOverlay + tryAutoSSOLogin()
+     further down for the rest of this. -->
+<script>
+if (window.location.search.indexOf('ssoToken=') !== -1) {
+  document.documentElement.classList.add('sso-incoming');
+}
+</script>
 <!-- Favicon — inline SVG data URI (calendar-only mark, no external file):
      works identically whether this HTML is served from GitHub Pages or
      pasted into Apps Script, since there's nothing to link/host. -->
@@ -324,6 +334,25 @@ tr.row-pending:hover td { background: #fef9c3; }
 @keyframes rtcsys-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @keyframes rtcsys-pulse { 0%,100% { transform: scale(1); opacity: .9; box-shadow: 0 0 0 0 rgba(185,28,28,.4); } 50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 20px 4px rgba(185,28,28,.2); } }
 @keyframes rtcsys-loading { 0% { transform: translateX(-100%); } 50% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+
+/* ── SSO arrival overlay (Employee Portal → here) ─────────────────
+   Full-screen, fully opaque, highest z-index in the app — sits above
+   even the custom cursor (z-index 99999). Hidden by default; only
+   shown when the early <head> script (see above) detects ?ssoToken=
+   in the URL and tags <html class="sso-incoming"> before body paints,
+   so this is the very first (and only) thing visible while the SSO
+   handoff is in progress — no login form / nav / stale view flash.
+   Reuses the same .rtcsys-* loader pieces as #loadingOverlay, just
+   recolored for a solid maroon background instead of translucent white. */
+#ssoArrivalOverlay { position: fixed; inset: 0; z-index: 999999; display: none; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--maroon,#800000), #2b0000); }
+html.sso-incoming #ssoArrivalOverlay { display: flex; }
+#ssoArrivalOverlay .rtcsys-title { color: #fff; }
+#ssoArrivalOverlay .rtcsys-sub { color: rgba(255,255,255,.8); transition: opacity .25s ease; }
+#ssoArrivalOverlay .rtcsys-calbox { border-color: #fff; }
+#ssoArrivalOverlay .rtcsys-hand { background-color: #fff; }
+#ssoArrivalOverlay .rtcsys-ring { border-top-color: #fff; }
+#ssoArrivalOverlay .rtcsys-progress { background-color: rgba(255,255,255,.2); }
+#ssoArrivalOverlay .rtcsys-progress-line { background: linear-gradient(90deg,#fff,rgba(255,255,255,.4)); }
 
 /* ── Calendar-local loading (gray flip-calendar) ─────────────────
    Small, self-contained loader that overlays just the calendar grid
@@ -647,6 +676,17 @@ body.rtc-cursor-active .rtc-cursor-dot{ width:8px; height:8px; }
 </style>
 </head>
 <body>
+
+<!-- See the blocking <head> script + CSS above for how this shows
+     instantly with zero flash of anything behind it. -->
+<div id="ssoArrivalOverlay">
+  <div>
+    <div class="rtcsys-icon"><div class="rtcsys-ring"></div><div class="rtcsys-calbox"><div class="rtcsys-hand"></div></div></div>
+    <div class="rtcsys-title">RTC Booking System</div>
+    <div class="rtcsys-sub" id="ssoArrivalSub">Signing you in…</div>
+    <div class="rtcsys-progress"><div class="rtcsys-progress-line"></div></div>
+  </div>
+</div>
 
 <div class="loading-overlay hidden" id="loadingOverlay">
   <div>
@@ -1452,10 +1492,23 @@ window.onload = function() {
 };
 
 // ── SSO auto-login (arrived via "Book a Room" from Employee Portal) ──
+// #ssoArrivalOverlay is already showing (see the blocking <head> script)
+// by the time this runs — it stays up through the whole exchange and is
+// only hidden right at the end of each branch below, AFTER showView()
+// has already switched to the real destination. That order matters: it
+// means the overlay is removed the same instant the correct view is
+// already in place, so nothing in between is ever visible.
 function tryAutoSSOLogin() {
   const params = new URLSearchParams(window.location.search);
   const token  = params.get('ssoToken');
-  if (!token) return;
+  if (!token) {
+    // No token — this wasn't an SSO arrival after all (shouldn't
+    // normally happen since the overlay only shows when the URL has
+    // one, but guard against it anyway rather than leaving the overlay
+    // stuck on screen).
+    document.documentElement.classList.remove('sso-incoming');
+    return;
+  }
 
   // Strip the token from the URL immediately so it can't be re-shared
   // or re-read from browser history.
@@ -1463,26 +1516,37 @@ function tryAutoSSOLogin() {
   const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
   window.history.replaceState({}, document.title, cleanUrl);
 
+  const subEl = document.getElementById('ssoArrivalSub');
+  function setSub(text) { if (subEl) { subEl.style.opacity = '0'; setTimeout(function() { subEl.textContent = text; subEl.style.opacity = '1'; }, 150); } }
+  function hideOverlay() { document.documentElement.classList.remove('sso-incoming'); }
+
+  setSub('Verifying your access…');
+
   api('ssoLogin', { token: token }, function(r) {
     if (r && r.success) {
       if (r.isAdmin) {
         App.admin = r.admin;
-        toast('Welcome, ' + r.admin.displayName + '! Signed in via Employee Portal.', 'success');
         renderNav();
         showView('admin');
+        hideOverlay();
+        toast('Welcome, ' + r.admin.displayName + '! Signed in via Employee Portal.', 'success');
       } else {
         App.user = r.user;
-        toast('Welcome, ' + r.user.fullName + '! Signed in via Employee Portal.', 'success');
+        setSub('Loading your rooms…');
         renderNav();
         showView('roomChooser');
+        hideOverlay();
+        toast('Welcome, ' + r.user.fullName + '! Signed in via Employee Portal.', 'success');
       }
     } else {
-      toast((r && r.message) || 'SSO sign-in failed. Please log in manually.', 'error');
       showView('login');
+      hideOverlay();
+      toast((r && r.message) || 'SSO sign-in failed. Please log in manually.', 'error');
     }
   }, function() {
-    toast('Network error during sign-in. Please log in manually.', 'error');
     showView('login');
+    hideOverlay();
+    toast('Network error during sign-in. Please log in manually.', 'error');
   });
 }
 
@@ -3326,7 +3390,7 @@ function triggerAvatarUpload() {
 function onProfilePicChange(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
-  if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+  if (!file.type.startsWith('image/')) { toast('Please select an image file.', 'error'); return; }
   resizeImageToBase64(file, function(base64) {
     App.pendingAvatar = base64;
     // Preview in modal
